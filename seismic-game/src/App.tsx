@@ -5,6 +5,7 @@ import Game from './components/Game'
 import BlockchainInfo from './components/BlockchainInfo'
 import PlayerStats from './components/PlayerStats'
 import DevnetSetup from './components/DevnetSetup'
+import EncryptionControls from './components/EncryptionControls'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
@@ -86,6 +87,7 @@ function App() {
       <main className="app-content">
         {isLoggedIn && <DevnetSetup isLoggedIn={isLoggedIn} />}
         {isLoggedIn && <BlockchainInfo isLoggedIn={isLoggedIn} />}
+        {isLoggedIn && <EncryptionControls isLoggedIn={isLoggedIn} userName={userName} />}
         {isLoggedIn && <PlayerStats isLoggedIn={isLoggedIn} />}
         <Game isLoggedIn={isLoggedIn} />
       </main>
