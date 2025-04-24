@@ -29,32 +29,29 @@
   padding: 1rem;
 }
 
-.achievements-section,
-.player-metrics {
+.achievements-section {
   margin-bottom: 1.5rem;
 }
 
-.achievements-section h4,
+.achievements-section h4, 
 .player-metrics h4,
 .path-viz h4 {
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
   color: #4ade80;
-  border-bottom: 1px solid rgba(74, 222, 128, 0.2);
-  padding-bottom: 0.5rem;
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem 0;
 }
 
 .achievements-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .achievement-item {
   display: flex;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 0.75rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
   border-radius: 4px;
   gap: 0.5rem;
 }
@@ -64,25 +61,30 @@
 }
 
 .achievement-name {
-  font-size: 0.8rem;
-  font-weight: bold;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.player-metrics {
+  margin-top: 1rem;
 }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .metric-item {
-  text-align: center;
-  background-color: rgba(255, 255, 255, 0.05);
-  padding: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
   border-radius: 4px;
+  text-align: center;
 }
 
 .metric-value {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #4ade80;
 }
@@ -98,38 +100,39 @@
 }
 
 .path-container {
-  height: 300px;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
   border-radius: 4px;
-  overflow: hidden;
+  width: 100%;
+  height: 200px;
 }
 
 .path-svg {
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 30, 0, 0.5);
 }
 
 .path-line {
   fill: none;
-  stroke: rgba(74, 222, 128, 0.6);
+  stroke: #4ade80;
   stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
+  stroke-opacity: 0.6;
+  stroke-dasharray: 5;
 }
 
 .path-point {
-  fill: rgba(255, 255, 255, 0.5);
+  fill: #4ade80;
+  opacity: 0.7;
 }
 
 .start-point {
-  fill: #64748b;
+  fill: #4ade80;
   stroke: white;
   stroke-width: 1;
 }
 
 .end-point {
-  fill: #4ade80;
+  fill: #fbbf24;
   stroke: white;
   stroke-width: 1;
 } 

@@ -30,11 +30,18 @@ interface Transaction {
   timestamp: number;
   blockNumber?: number;
   confirmed?: boolean;
+  action?: string;
 }
 
 interface User {
   name: string;
   id: string;
+}
+
+interface PlayerStatistics {
+  movements?: number;
+  distance?: number;
+  path?: Array<{x: number, y: number}>;
 }
 
 class SeismicSDK {
@@ -44,6 +51,68 @@ class SeismicSDK {
   private readonly STORAGE_KEY = 'seismic_game_data';
   private readonly TX_STORAGE_KEY = 'seismic_transactions';
   private eventListeners: { [key: string]: Function[] } = {};
+  
+  // Add data namespace for method organization
+  public data = {
+    get: async (): Promise<GameData> => {
+      const gameData = await this.getGameData();
+      if (gameData) {
+        // Simulate transaction
+        this.logTransaction('DATA_RESPONSE', { action: 'DATA_RESPONSE' });
+        return gameData;
+      }
+      
+      // Return default data if nothing is saved
+      return {
+        player: {
+          x: 7,
+          y: 7,
+          direction: 'down',
+          steps: 0,
+          movements: []
+        },
+        artifact: {
+          x: Math.floor(Math.random() * 13) + 1,
+          y: Math.floor(Math.random() * 13) + 1,
+          found: false
+        },
+        achievements: []
+      };
+    },
+    
+    getStats: async (): Promise<PlayerStatistics> => {
+      const gameData = await this.getGameData();
+      if (!gameData || !gameData.player) {
+        return {
+          movements: 0,
+          distance: 0,
+          path: []
+        };
+      }
+      
+      // Calculate distance from movements
+      let distance = 0;
+      const movements = gameData.player.movements;
+      const path = [...movements];
+      
+      for (let i = 1; i < movements.length; i++) {
+        const prev = movements[i-1];
+        const curr = movements[i];
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        distance += Math.sqrt(dx*dx + dy*dy);
+      }
+      
+      // Log transaction for stats retrieval
+      this.logTransaction('GET_PLAYER_STATS', { action: 'DATA_RESPONSE' });
+      
+      return {
+        movements: gameData.player.steps,
+        distance,
+        path
+      };
+    }
+  };
 
   constructor() {
     this.loadTransactions();
@@ -202,7 +271,7 @@ class SeismicSDK {
           localStorage.setItem(storageKey, JSON.stringify(data));
           
           // Log transaction
-          this.logTransaction('SAVE_GAME_DATA', data);
+          this.logTransaction('SAVE_GAME_DATA', { ...data, action: 'DATA_UPDATE_COMPLETE' });
           
           resolve(true);
         } catch (error) {
@@ -248,6 +317,7 @@ class SeismicSDK {
       type,
       data,
       timestamp: Date.now(),
+      action: data.action || type
     };
 
     // Add to transactions list
