@@ -1,18 +1,6 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "seismic-game/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/seismic-game/dist/$1"
-    }
-  ]
+  "buildCommand": "cd seismic-game && npm install && npm run build",
+  "installCommand": "cd seismic-game && npm install",
+  "outputDirectory": "seismic-game/dist"
 } 

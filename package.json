@@ -1,0 +1,10 @@
+{
+  "name": "seismic-game-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install": "cd seismic-game && npm install",
+    "build": "cd seismic-game && npm run build",
+    "start": "cd seismic-game && npm run preview"
+  }
+} 
