@@ -32,12 +32,18 @@ interface Transaction {
   confirmed?: boolean;
 }
 
+interface User {
+  name: string;
+  id: string;
+}
+
 class SeismicSDK {
   private userName: string | null = null;
   private transactions: Transaction[] = [];
   private isDevnetConnected: boolean = false;
   private readonly STORAGE_KEY = 'seismic_game_data';
   private readonly TX_STORAGE_KEY = 'seismic_transactions';
+  private eventListeners: { [key: string]: Function[] } = {};
 
   constructor() {
     this.loadTransactions();
@@ -81,12 +87,106 @@ class SeismicSDK {
     }
     return this.isDevnetConnected;
   }
+  
+  /**
+   * Check if user is logged in (alias for isConnected)
+   */
+  public isLoggedIn(): boolean {
+    return this.isConnected();
+  }
+  
+  /**
+   * Login user with simulated login process
+   */
+  public async login(): Promise<User> {
+    const defaultName = 'Player' + Math.floor(Math.random() * 1000);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.userName = defaultName;
+        localStorage.setItem('seismic_username', defaultName);
+        this.isDevnetConnected = true;
+        this.logTransaction('LOGIN', { userName: defaultName });
+        resolve({ name: defaultName, id: 'user_' + Date.now() });
+      }, 1000);
+    });
+  }
+  
+  /**
+   * Logout user
+   */
+  public async logout(): Promise<boolean> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.logTransaction('LOGOUT', { userName: this.userName });
+        this.disconnect();
+        resolve(true);
+      }, 500);
+    });
+  }
+  
+  /**
+   * Get user object
+   */
+  public getUser(): User | null {
+    if (!this.userName) return null;
+    return {
+      name: this.userName,
+      id: 'user_' + this.userName
+    };
+  }
 
   /**
    * Get currently connected username
    */
   public getUsername(): string | null {
     return this.userName;
+  }
+  
+  /**
+   * Get connection info for DevnetSetup component
+   */
+  public getConnectionInfo() {
+    return {
+      connected: this.isDevnetConnected,
+      network: 'Seismic Devnet',
+      chainId: 3330,
+      contractAddress: this.isDevnetConnected ? '0x1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t' : '0x0000000000000000000000000000000000000000'
+    };
+  }
+  
+  /**
+   * Get network stats for BlockchainInfo component
+   */
+  public async getNetworkStats() {
+    return {
+      blockHeight: Math.floor(Math.random() * 10000000) + 5000000,
+      transactionsPerSecond: Math.floor(Math.random() * 200) + 800,
+      activeNodes: Math.floor(Math.random() * 50) + 150,
+      encryptionStrength: '256-bit FHE',
+      networkLatency: Math.floor(Math.random() * 50) + 50 + 'ms'
+    };
+  }
+  
+  /**
+   * Get transaction log for components
+   */
+  public getTransactionLog() {
+    return this.transactions;
+  }
+  
+  /**
+   * Subscribe to events
+   */
+  public on(event: string, callback: Function) {
+    if (!this.eventListeners[event]) {
+      this.eventListeners[event] = [];
+    }
+    this.eventListeners[event].push(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      this.eventListeners[event] = this.eventListeners[event].filter(cb => cb !== callback);
+    };
   }
 
   /**
@@ -153,6 +253,13 @@ class SeismicSDK {
     // Add to transactions list
     this.transactions.push(transaction);
     
+    // Trigger event listeners
+    if (this.eventListeners['transaction']) {
+      this.eventListeners['transaction'].forEach(callback => {
+        callback(transaction);
+      });
+    }
+    
     // Simulate block confirmation after delay
     setTimeout(() => {
       const index = this.transactions.findIndex(
@@ -163,6 +270,13 @@ class SeismicSDK {
         this.transactions[index].confirmed = true;
         this.transactions[index].blockNumber = Math.floor(Math.random() * 1000000) + 1;
         this.saveTransactions();
+        
+        // Trigger event listeners for confirmation
+        if (this.eventListeners['transaction']) {
+          this.eventListeners['transaction'].forEach(callback => {
+            callback({...this.transactions[index], action: 'TRANSACTION_CONFIRMED'});
+          });
+        }
       }
     }, 2000);
 
@@ -183,6 +297,19 @@ class SeismicSDK {
     return new Promise((resolve) => {
       setTimeout(() => {
         this.isDevnetConnected = true;
+        
+        // Trigger event listeners
+        if (this.eventListeners['transaction']) {
+          this.eventListeners['transaction'].forEach(callback => {
+            callback({
+              type: 'DEVNET_CONNECTED',
+              action: 'DEVNET_CONNECTED',
+              data: {},
+              timestamp: Date.now()
+            });
+          });
+        }
+        
         resolve(true);
       }, 2000); // Simulate connection setup time
     });
