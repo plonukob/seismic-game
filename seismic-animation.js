@@ -135,4 +135,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// Добавляем инициализацию анимации криптографической головоломки при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Получаем контейнеры для анимации (два разных ID используются в HTML)
+    const encryptionAnimation = document.getElementById('encryptionAnimation') || 
+                              document.getElementById('encryption-animation');
+    
+    if (encryptionAnimation) {
+        // Показываем контейнер анимации
+        encryptionAnimation.style.display = 'block';
+        
+        // Инициализируем анимацию
+        setTimeout(() => {
+            // Добавляем класс для запуска анимации
+            encryptionAnimation.classList.add('animate');
+            
+            // Добавляем базовую структуру для TEE-процессора, если её ещё нет
+            if (!encryptionAnimation.querySelector('.tee-processor')) {
+                const teeProcessor = document.createElement('div');
+                teeProcessor.className = 'tee-processor';
+                teeProcessor.innerHTML = '<i class="bi bi-cpu"></i>';
+                
+                // Центрируем процессор в контейнере
+                teeProcessor.style.position = 'absolute';
+                teeProcessor.style.left = '50%';
+                teeProcessor.style.top = '50%';
+                teeProcessor.style.transform = 'translate(-50%, -50%)';
+                
+                encryptionAnimation.appendChild(teeProcessor);
+            }
+            
+            // Запускаем анимацию сейсмических волн
+            animateSeismicData(encryptionAnimation);
+        }, 500);
+    }
 }); 
