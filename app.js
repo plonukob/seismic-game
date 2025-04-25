@@ -1583,15 +1583,34 @@ contract PrivateAuction {
                         // Обновляем анимацию с реальными данными
                         animateEncryption(dataType, dataValue);
                         
-                        // Логируем результат
-                        const encryptedString = typeof encryptedData.encryptedValue === 'string' ? 
-                            encryptedData.encryptedValue.substring(0, 10) + '...' : 
-                            JSON.stringify(encryptedData.encryptedValue).substring(0, 10) + '...';
+                        // Логируем результат - безопасно извлекаем строку для отображения
+                        let encryptedString;
+                        try {
+                            if (typeof encryptedData.encryptedValue === 'string') {
+                                encryptedString = encryptedData.encryptedValue.substring(0, 10) + '...';
+                            } else if (encryptedData.encryptedValue && encryptedData.encryptedValue.toString) {
+                                encryptedString = encryptedData.encryptedValue.toString().substring(0, 10) + '...';
+                            } else {
+                                encryptedString = JSON.stringify(encryptedData.encryptedValue).substring(0, 10) + '...';
+                            }
+                        } catch (e) {
+                            encryptedString = '[зашифрованные данные]';
+                            console.error('Ошибка форматирования зашифрованных данных:', e);
+                        }
                             
                         addLogEntry('Шифрование', 
                             `Данные зашифрованы успешно: ${encryptedString}`, 
                             null, 
                             encryptedData);
+                            
+                        // Добавляем визуальное представление
+                        const logEntry = txLog.lastElementChild;
+                        if (logEntry) {
+                            const encryptedSpan = document.createElement('div');
+                            encryptedSpan.className = 'mt-1 text-info';
+                            encryptedSpan.innerHTML = `Зашифровано: ${dataType} (${encryptedString})`;
+                            logEntry.appendChild(encryptedSpan);
+                        }
                     })
                     .catch(error => {
                         addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
@@ -1794,17 +1813,29 @@ contract PrivateAuction {
                 blockchainBlock.classList.add('active');
                 
                 // Обновляем информацию в блоке
-                const blockNumber = blockchainBlock.querySelector('.block-number');
-                if (blockNumber) {
-                    blockNumber.textContent = `#${blockNumber}`;
+                const blockNumberElement = blockchainBlock.querySelector('.block-number');
+                if (blockNumberElement) {
+                    blockNumberElement.textContent = `#${blockNumber}`;
                 }
                 
                 const txData = blockchainBlock.querySelector('.encrypted-value');
                 if (txData) {
-                    const encryptedValue = typeof encryptedData.encryptedValue === 'string' ? 
-                        encryptedData.encryptedValue.substring(0, 6) + '...' : 
-                        JSON.stringify(encryptedData.encryptedValue).substring(0, 6) + '...';
-                    txData.textContent = encryptedValue;
+                    // Безопасно извлекаем строковое представление
+                    let encryptedString;
+                    try {
+                        if (typeof encryptedData.encryptedValue === 'string') {
+                            encryptedString = encryptedData.encryptedValue.substring(0, 6) + '...';
+                        } else if (encryptedData.encryptedValue && encryptedData.encryptedValue.toString) {
+                            encryptedString = encryptedData.encryptedValue.toString().substring(0, 6) + '...';
+                        } else {
+                            encryptedString = JSON.stringify(encryptedData.encryptedValue).substring(0, 6) + '...';
+                        }
+                    } catch (e) {
+                        encryptedString = '[encrypted]';
+                        console.error('Ошибка форматирования зашифрованных данных:', e);
+                    }
+                    
+                    txData.textContent = encryptedString;
                 }
                 
                 setTimeout(() => blockchainBlock.classList.remove('active'), 3000);
@@ -1815,6 +1846,17 @@ contract PrivateAuction {
             if (zkProof) {
                 zkProof.classList.add('active');
                 setTimeout(() => zkProof.classList.remove('active'), 3000);
+            }
+            
+            // Добавляем информацию о транзакции в лог
+            const txInfo = document.createElement('div');
+            txInfo.className = 'mt-2 text-info';
+            txInfo.innerHTML = `TX: <a href="${seismicConfig.network.explorer}/tx/${txHash}" target="_blank">${txHash}</a>`;
+            
+            // Находим последнюю запись в логе
+            const lastLogEntry = txLog.lastElementChild;
+            if (lastLogEntry) {
+                lastLogEntry.appendChild(txInfo);
             }
         }
         
