@@ -170,112 +170,51 @@
         }
         
         // Отправка транзакции в Seismic Devnet
-        async sendTransaction(encryptedData) {
+        async sendTransaction(data) {
             try {
-                if (!this.wallet) {
-                    throw new Error("Кошелек не подключен");
+                console.log("Начало отправки транзакции с данными:", data);
+                
+                if (!window.ethereum) {
+                    throw new Error("MetaMask не обнаружен. Пожалуйста, установите MetaMask для взаимодействия с блокчейном.");
                 }
                 
-                // Реальная отправка транзакции в Seismic Devnet
-                if (this.signer) {
-                    console.log("Подготовка транзакции для отправки в Seismic...");
-                    
-                    // Создаем транзакцию для отправки
-                    // Для Seismic Devnet нужно отправить на адрес со специальным форматом данных
-                    const demoContractAddress = "0x39dEE82cfb14C054E30a72Ef4Cf3B5594B0e14B9"; // публичный демо-контракт
-                    
-                    // Получаем текущую цену газа
-                    const gasPrice = await this.provider.getGasPrice();
-                    console.log("Текущая цена газа:", gasPrice.toString());
-                    
-                    // Оцениваем лимит газа
-                    const gasLimit = 100000; // Выставляем высокий лимит газа для уверенности
-                    
-                    // Формируем данные транзакции
-                    // В реальном приложении здесь бы вызывался метод контракта с зашифрованными данными
-                    // Для простой демонстрации мы просто отправляем пустую транзакцию
-                    const txData = {
-                        to: demoContractAddress,
-                        value: ethers.utils.parseEther("0.0001"), // Отправляем небольшую сумму, чтобы транзакция была валидной
-                        gasLimit: ethers.utils.hexlify(gasLimit),
-                        gasPrice: gasPrice,
-                        // Упрощенные данные - простой вызов функции transfer(address,uint256)
-                        data: "0xa9059cbb000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000ff"
-                    };
-                    
-                    console.log("Отправляем транзакцию:", txData);
-                    
-                    try {
-                        // Отправляем транзакцию
-                        const tx = await this.signer.sendTransaction(txData);
-                        console.log("Транзакция отправлена:", tx);
-                        
-                        // Ждем подтверждения
-                        console.log("Ожидание подтверждения транзакции...");
-                        const receipt = await tx.wait();
-                        console.log("Транзакция подтверждена:", receipt);
-                        
-                        return {
-                            success: true,
-                            txHash: receipt.transactionHash,
-                            blockNumber: receipt.blockNumber,
-                            encryptedData: encryptedData,
-                            timestamp: Date.now(),
-                            receipt: receipt
-                        };
-                    } catch (sendError) {
-                        console.error("Ошибка при отправке транзакции:", sendError);
-                        
-                        // В случае ошибки попробуем более простую транзакцию
-                        console.log("Пробуем более простую транзакцию...");
-                        
-                        // Отправляем простой перевод средств без данных
-                        const simpleTx = {
-                            to: demoContractAddress,
-                            value: ethers.utils.parseEther("0.0001"),
-                            gasLimit: ethers.utils.hexlify(gasLimit)
-                        };
-                        
-                        try {
-                            const tx = await this.signer.sendTransaction(simpleTx);
-                            console.log("Простая транзакция отправлена:", tx);
-                            
-                            const receipt = await tx.wait();
-                            console.log("Простая транзакция подтверждена:", receipt);
-                            
-                            return {
-                                success: true,
-                                txHash: receipt.transactionHash,
-                                blockNumber: receipt.blockNumber,
-                                encryptedData: encryptedData,
-                                timestamp: Date.now(),
-                                receipt: receipt
-                            };
-                        } catch (finalError) {
-                            console.error("Не удалось отправить даже простую транзакцию:", finalError);
-                            throw new Error("Не удалось отправить транзакцию: " + finalError.message);
-                        }
-                    }
-                } else {
-                    // Если нет signer, используем имитацию
-                    // Имитация ожидания подтверждения
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Генерируем фиктивный хеш транзакции и номер блока
-                    const txHash = "0x" + Array.from({length: 64}, () => 
-                        Math.floor(Math.random() * 16).toString(16)).join('');
-                    const blockNumber = Math.floor(Math.random() * 1000000) + 1000000;
-                    
-                    return {
-                        success: true,
-                        txHash: txHash,
-                        blockNumber: blockNumber,
-                        encryptedData: encryptedData,
-                        timestamp: Date.now()
-                    };
-                }
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const address = await signer.getAddress();
+                
+                console.log("Адрес отправителя:", address);
+                
+                // Вместо использования демо-контракта с неверной контрольной суммой,
+                // отправляем небольшое количество эфира на адрес пользователя
+                // Адрес получателя - это адрес самого пользователя
+                const recipientAddress = address;
+                
+                // Создаем транзакцию - без поля data для обычного адреса
+                const tx = {
+                    to: recipientAddress,
+                    value: ethers.utils.parseEther("0.0001"), // Отправляем минимальное количество эфира
+                    gasLimit: ethers.utils.hexlify(100000) // Устанавливаем лимит газа для транзакции
+                };
+                
+                // Сохраняем данные в консоль для демонстрации (в реальном приложении они были бы в data)
+                console.log("Зашифрованные данные транзакции (не отправляются):", JSON.stringify(data));
+                
+                console.log("Подготовленная транзакция:", tx);
+                
+                // Отправляем транзакцию
+                const transaction = await signer.sendTransaction(tx);
+                console.log("Транзакция отправлена:", transaction.hash);
+                
+                // Ожидаем подтверждения транзакции (1 подтверждение)
+                const receipt = await transaction.wait(1);
+                console.log("Транзакция подтверждена:", receipt);
+                
+                return receipt;
             } catch (error) {
-                console.error("Ошибка отправки транзакции:", error);
+                console.error("Ошибка при отправке транзакции:", error);
+                console.log("Подробная информация об ошибке:", error.message);
+                if (error.code) console.log("Код ошибки:", error.code);
+                if (error.reason) console.log("Причина ошибки:", error.reason);
                 throw error;
             }
         }
