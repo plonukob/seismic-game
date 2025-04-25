@@ -1,0 +1,146 @@
+/* Стили для визуализации шифрования */
+.encryption-visualization {
+    width: 100%;
+    padding: 20px;
+    margin: 20px 0;
+    background-color: #f7f9fc;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    display: none;
+}
+
+.encryption-data {
+    width: 100%;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    transition: all 0.5s ease;
+    opacity: 0;
+}
+
+.encryption-arrow {
+    font-size: 24px;
+    margin: 10px 0;
+    color: #3a7bd5;
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.encryption-data.original {
+    background-color: #e0f7fa;
+    border-left: 4px solid #00acc1;
+    color: #006064;
+}
+
+.encryption-data.encrypted {
+    background-color: #e8f5e9;
+    border-left: 4px solid #43a047;
+    color: #1b5e20;
+}
+
+/* Анимация */
+.encryption-visualization.animate .encryption-data.original {
+    opacity: 1;
+    animation: slideIn 0.5s ease forwards;
+}
+
+.encryption-visualization.animate .encryption-arrow {
+    opacity: 1;
+    animation: fadeIn 0.5s ease 0.5s forwards;
+}
+
+.encryption-visualization.animate .encryption-data.encrypted {
+    opacity: 1;
+    animation: slideIn 0.5s ease 1s forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Сейсмические волны для анимации */
+.seismic-wave-circle {
+    position: absolute;
+    border: 2px solid rgba(74, 123, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: none;
+}
+
+@keyframes seismicWave {
+    0% {
+        width: 10px;
+        height: 10px;
+        opacity: 0.7;
+    }
+    100% {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+    }
+}
+
+.seismic-data-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #4a7bff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    box-shadow: 0 0 8px #4a7bff;
+}
+
+@keyframes pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+}
+
+.seismic-connection-line {
+    position: absolute;
+    height: 2px;
+    background-color: rgba(74, 123, 255, 0.3);
+    transform-origin: left center;
+    z-index: 1;
+}
+
+@keyframes seismicPulse {
+    0% {
+        background-color: rgba(74, 123, 255, 0.1);
+    }
+    50% {
+        background-color: rgba(74, 123, 255, 0.6);
+    }
+    100% {
+        background-color: rgba(74, 123, 255, 0.1);
+    }
+} 
