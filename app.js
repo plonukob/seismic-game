@@ -1635,44 +1635,80 @@ contract PrivateAuction {
             originalData.textContent = `${dataType}: ${dataValue}`;
             originalData.style.opacity = '1';
             
-            // Создание частиц данных для анимации
-            for (let i = 0; i < 10; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'data-particle';
+            // Добавляем логи до шифрования
+            addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
+
+            // Используем try-catch для защиты от ошибок
+            try {
+                // Создание частиц данных для анимации
+                for (let i = 0; i < 10; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'data-particle';
+                    
+                    // Размещение частицы в случайном месте слева
+                    const randomTop = 20 + Math.random() * 160;
+                    particle.style.left = '30px';
+                    particle.style.top = `${randomTop}px`;
+                    
+                    encryptionAnimation.querySelector('.position-relative').appendChild(particle);
+                    
+                    // Анимация движения частицы в центр (к TEE)
+                    setTimeout(() => {
+                        particle.style.transform = 'translate(100px, -10px)';
+                    }, 100 + i * 50);
+                    
+                    // Удаление частицы после завершения анимации
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 2000);
+                }
                 
-                // Размещение частицы в случайном месте слева
-                const randomTop = 20 + Math.random() * 160;
-                particle.style.left = '30px';
-                particle.style.top = `${randomTop}px`;
-                
-                encryptionAnimation.querySelector('.position-relative').appendChild(particle);
-                
-                // Анимация движения частицы в центр (к TEE)
+                // Активация TEE-процессора
                 setTimeout(() => {
-                    particle.style.transform = 'translate(100px, -10px)';
-                }, 100 + i * 50);
-                
-                // Удаление частицы после завершения анимации
-                setTimeout(() => {
-                    particle.remove();
-                }, 2000);
-            }
-            
-            // Активация TEE-процессора
-            setTimeout(() => {
-                teeProcessor.classList.add('active');
-                
-                addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
-                
-                // Шифрование данных с использованием SDK
-                if (window.seismicSDK) {
-                    seismicSDK.encrypt(dataType, dataValue)
-                        .then(encryptedValue => {
-                            // Сохранение результата шифрования
+                    teeProcessor.classList.add('active');
+                    
+                    addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
+                    
+                    // Шифрование данных с использованием SDK
+                    if (window.seismicSDK) {
+                        seismicSDK.encrypt(dataType, dataValue)
+                            .then(encryptedValue => {
+                                // Сохранение результата шифрования
+                                currentEncryption = {
+                                    type: dataType,
+                                    originalValue: dataValue,
+                                    encryptedValue: encryptedValue
+                                };
+                                
+                                // Отображение зашифрованных данных
+                                encryptedData.textContent = `${dataType}: ${currentEncryption.encryptedValue.substring(0, 20)}...`;
+                                encryptedData.style.opacity = '1';
+                                
+                                // Активация ZK-доказательства
+                                zkProof.classList.add('active');
+                                
+                                // Деактивация TEE через полсекунды
+                                setTimeout(() => {
+                                    teeProcessor.classList.remove('active');
+                                    
+                                    // Активация кнопки отправки транзакции
+                                    sendTxBtn.disabled = false;
+                                    
+                                    addLogEntry('Шифрование', 'Данные успешно зашифрованы с ZK-доказательством');
+                                }, 500);
+                            })
+                            .catch(error => {
+                                addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
+                                teeProcessor.classList.remove('active');
+                            });
+                    } else {
+                        // Если SDK не доступен, имитируем шифрование
+                        setTimeout(() => {
+                            // Генерация зашифрованного значения
                             currentEncryption = {
                                 type: dataType,
                                 originalValue: dataValue,
-                                encryptedValue: encryptedValue
+                                encryptedValue: generateEncryptedValue(dataType, dataValue)
                             };
                             
                             // Отображение зашифрованных данных
@@ -1682,7 +1718,7 @@ contract PrivateAuction {
                             // Активация ZK-доказательства
                             zkProof.classList.add('active');
                             
-                            // Деактивация TEE через полсекунды
+                            // Деактивация TEE
                             setTimeout(() => {
                                 teeProcessor.classList.remove('active');
                                 
@@ -1691,40 +1727,21 @@ contract PrivateAuction {
                                 
                                 addLogEntry('Шифрование', 'Данные успешно зашифрованы с ZK-доказательством');
                             }, 500);
-                        })
-                        .catch(error => {
-                            addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
-                            teeProcessor.classList.remove('active');
-                        });
-                } else {
-                    // Если SDK не доступен, имитируем шифрование
-                    setTimeout(() => {
-                        // Генерация зашифрованного значения
-                        currentEncryption = {
-                            type: dataType,
-                            originalValue: dataValue,
-                            encryptedValue: generateEncryptedValue(dataType, dataValue)
-                        };
-                        
-                        // Отображение зашифрованных данных
-                        encryptedData.textContent = `${dataType}: ${currentEncryption.encryptedValue.substring(0, 20)}...`;
-                        encryptedData.style.opacity = '1';
-                        
-                        // Активация ZK-доказательства
-                        zkProof.classList.add('active');
-                        
-                        // Деактивация TEE
-                        setTimeout(() => {
-                            teeProcessor.classList.remove('active');
-                            
-                            // Активация кнопки отправки транзакции
-                            sendTxBtn.disabled = false;
-                            
-                            addLogEntry('Шифрование', 'Данные успешно зашифрованы с ZK-доказательством');
-                        }, 500);
-                    }, 2000);
+                        }, 2000);
+                    }
+                }, 1000);
+                
+                // Дополнительные проверки и логирование для отладки
+                console.log("Состояние после шифрования:", currentEncryption);
+                
+                // Проверяем, что переменная существует
+                if(!currentEncryption) {
+                    console.warn("currentEncryption не определен");
                 }
-            }, 1000);
+            } catch (error) {
+                console.error("Ошибка в анимации шифрования:", error);
+                addLogEntry('Ошибка', 'Ошибка в анимации: ' + error.message);
+            }
         }
         
         // Отправка транзакции в блокчейн

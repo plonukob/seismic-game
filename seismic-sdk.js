@@ -178,36 +178,84 @@
                 
                 // Реальная отправка транзакции в Seismic Devnet
                 if (this.signer) {
-                    // Создаем транзакцию для отправки
-                    // Это простая транзакция на специальный адрес демо-контракта Seismic
-                    const demoContractAddress = "0x0000000000000000000000000000000000000001"; // Демо-адрес
+                    console.log("Подготовка транзакции для отправки в Seismic...");
                     
-                    // Формируем данные транзакции в формате, который ожидает Seismic
+                    // Создаем транзакцию для отправки
+                    // Для Seismic Devnet нужно отправить на адрес со специальным форматом данных
+                    const demoContractAddress = "0x39dEE82cfb14C054E30a72Ef4Cf3B5594B0e14B9"; // публичный демо-контракт
+                    
+                    // Получаем текущую цену газа
+                    const gasPrice = await this.provider.getGasPrice();
+                    console.log("Текущая цена газа:", gasPrice.toString());
+                    
+                    // Оцениваем лимит газа
+                    const gasLimit = 100000; // Выставляем высокий лимит газа для уверенности
+                    
+                    // Формируем данные транзакции
                     // В реальном приложении здесь бы вызывался метод контракта с зашифрованными данными
+                    // Для простой демонстрации мы просто отправляем пустую транзакцию
                     const txData = {
                         to: demoContractAddress,
-                        value: ethers.utils.parseEther("0"), // Транзакция без передачи ETH
-                        data: "0x" // Заглушка для данных транзакции, в реальном сценарии здесь будут зашифрованные данные
+                        value: ethers.utils.parseEther("0.0001"), // Отправляем небольшую сумму, чтобы транзакция была валидной
+                        gasLimit: ethers.utils.hexlify(gasLimit),
+                        gasPrice: gasPrice,
+                        // Упрощенные данные - простой вызов функции transfer(address,uint256)
+                        data: "0xa9059cbb000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000ff"
                     };
                     
                     console.log("Отправляем транзакцию:", txData);
                     
-                    // Отправляем транзакцию
-                    const tx = await this.signer.sendTransaction(txData);
-                    console.log("Транзакция отправлена:", tx);
-                    
-                    // Ждем подтверждения
-                    const receipt = await tx.wait();
-                    console.log("Транзакция подтверждена:", receipt);
-                    
-                    return {
-                        success: true,
-                        txHash: receipt.transactionHash,
-                        blockNumber: receipt.blockNumber,
-                        encryptedData: encryptedData,
-                        timestamp: Date.now(),
-                        receipt: receipt
-                    };
+                    try {
+                        // Отправляем транзакцию
+                        const tx = await this.signer.sendTransaction(txData);
+                        console.log("Транзакция отправлена:", tx);
+                        
+                        // Ждем подтверждения
+                        console.log("Ожидание подтверждения транзакции...");
+                        const receipt = await tx.wait();
+                        console.log("Транзакция подтверждена:", receipt);
+                        
+                        return {
+                            success: true,
+                            txHash: receipt.transactionHash,
+                            blockNumber: receipt.blockNumber,
+                            encryptedData: encryptedData,
+                            timestamp: Date.now(),
+                            receipt: receipt
+                        };
+                    } catch (sendError) {
+                        console.error("Ошибка при отправке транзакции:", sendError);
+                        
+                        // В случае ошибки попробуем более простую транзакцию
+                        console.log("Пробуем более простую транзакцию...");
+                        
+                        // Отправляем простой перевод средств без данных
+                        const simpleTx = {
+                            to: demoContractAddress,
+                            value: ethers.utils.parseEther("0.0001"),
+                            gasLimit: ethers.utils.hexlify(gasLimit)
+                        };
+                        
+                        try {
+                            const tx = await this.signer.sendTransaction(simpleTx);
+                            console.log("Простая транзакция отправлена:", tx);
+                            
+                            const receipt = await tx.wait();
+                            console.log("Простая транзакция подтверждена:", receipt);
+                            
+                            return {
+                                success: true,
+                                txHash: receipt.transactionHash,
+                                blockNumber: receipt.blockNumber,
+                                encryptedData: encryptedData,
+                                timestamp: Date.now(),
+                                receipt: receipt
+                            };
+                        } catch (finalError) {
+                            console.error("Не удалось отправить даже простую транзакцию:", finalError);
+                            throw new Error("Не удалось отправить транзакцию: " + finalError.message);
+                        }
+                    }
                 } else {
                     // Если нет signer, используем имитацию
                     // Имитация ожидания подтверждения
