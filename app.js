@@ -1584,8 +1584,12 @@ contract PrivateAuction {
                         animateEncryption(dataType, dataValue);
                         
                         // Логируем результат
+                        const encryptedString = typeof encryptedData.encryptedValue === 'string' ? 
+                            encryptedData.encryptedValue.substring(0, 10) + '...' : 
+                            JSON.stringify(encryptedData.encryptedValue).substring(0, 10) + '...';
+                            
                         addLogEntry('Шифрование', 
-                            `Данные зашифрованы успешно: ${encryptedData.encryptedValue.substring(0, 10)}...`, 
+                            `Данные зашифрованы успешно: ${encryptedString}`, 
                             null, 
                             encryptedData);
                     })
@@ -1718,8 +1722,8 @@ contract PrivateAuction {
             if (window.seismicSDK) {
                 seismicSDK.sendTransaction(currentEncryption)
                     .then(result => {
-                        // Показываем анимацию отправки
-                        sendTransactionWithAnimation(
+                        // Показываем анимацию отправки транзакции
+                        displayTransactionAnimation(
                             currentEncryption,
                             result.txHash,
                             result.blockNumber
@@ -1751,7 +1755,7 @@ contract PrivateAuction {
                         addLogEntry('Ошибка', 'Ошибка отправки транзакции: ' + error.message);
                     });
             } else {
-                // Имитация процесса отправки (существующий код)
+                // Имитация процесса отправки
                 setTimeout(() => {
                     // Генерируем фиктивный хеш транзакции и номер блока
                     const txHash = "0x" + Array.from({length: 64}, () => 
@@ -1759,7 +1763,7 @@ contract PrivateAuction {
                     const blockNumber = Math.floor(Math.random() * 1000000) + 1000000;
                     
                     // Показываем анимацию отправки
-                    sendTransactionWithAnimation(currentEncryption, txHash, blockNumber);
+                    displayTransactionAnimation(currentEncryption, txHash, blockNumber);
                     
                     // Сбрасываем текущее шифрование
                     currentEncryption = null;
@@ -1770,6 +1774,47 @@ contract PrivateAuction {
                         `Транзакция отправлена и подтверждена в блоке #${blockNumber}`, 
                         txHash);
                 }, 2000);
+            }
+        }
+        
+        // Функция для анимации отправки транзакции
+        function displayTransactionAnimation(encryptedData, txHash, blockNumber) {
+            // Получаем элементы для анимации
+            const networkActivity = encryptionAnimation.querySelector('.network-activity');
+            const blockchainBlock = encryptionAnimation.querySelector('.blockchain-block');
+            
+            // Активируем индикатор сетевой активности
+            if (networkActivity) {
+                networkActivity.classList.add('active');
+                setTimeout(() => networkActivity.classList.remove('active'), 5000);
+            }
+            
+            // Анимируем блок в блокчейне
+            if (blockchainBlock) {
+                blockchainBlock.classList.add('active');
+                
+                // Обновляем информацию в блоке
+                const blockNumber = blockchainBlock.querySelector('.block-number');
+                if (blockNumber) {
+                    blockNumber.textContent = `#${blockNumber}`;
+                }
+                
+                const txData = blockchainBlock.querySelector('.encrypted-value');
+                if (txData) {
+                    const encryptedValue = typeof encryptedData.encryptedValue === 'string' ? 
+                        encryptedData.encryptedValue.substring(0, 6) + '...' : 
+                        JSON.stringify(encryptedData.encryptedValue).substring(0, 6) + '...';
+                    txData.textContent = encryptedValue;
+                }
+                
+                setTimeout(() => blockchainBlock.classList.remove('active'), 3000);
+            }
+            
+            // Создаем анимацию движения данных к блокчейну
+            const zkProof = encryptionAnimation.querySelector('.zk-proof');
+            if (zkProof) {
+                zkProof.classList.add('active');
+                setTimeout(() => zkProof.classList.remove('active'), 3000);
             }
         }
         
