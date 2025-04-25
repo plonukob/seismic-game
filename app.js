@@ -1385,22 +1385,38 @@ contract PrivateAuction {
         function loadSeismicLibrary() {
             addLogEntry('Система', 'Загрузка библиотеки Seismic...');
             
-            // Использование глобальной функции для загрузки SDK
-            if (window.loadSeismicSDK) {
-                window.loadSeismicSDK()
-                    .then(sdk => {
-                        addLogEntry('Система', 'Библиотека Seismic успешно загружена');
-                        
-                        // Подготовка среды визуализации
-                        prepareVisualization();
+            // Используем SDK для подключения
+            if (window.seismicSDK) {
+                seismicSDK.initialize()
+                    .then(success => {
+                        if (success) {
+                            addLogEntry('Система', 'Подключено к Seismic Devnet');
+                            connectionStatus.textContent = 'Подключено к Devnet';
+                            connectionStatus.className = 'badge bg-success connection-status';
+                            
+                            // Проверяем цепочку
+                            addLogEntry('Система', `Цепочка: ${seismicConfig.network.name} (ID: ${seismicConfig.network.chainId})`);
+                            addLogEntry('Система', `RPC URL: ${seismicConfig.network.rpcUrl}`);
+                            
+                            // Подготовка среды визуализации
+                            prepareVisualization();
+                        } else {
+                            addLogEntry('Ошибка', 'Не удалось инициализировать SDK');
+                            connectionStatus.textContent = 'Ошибка подключения';
+                            connectionStatus.className = 'badge bg-danger connection-status';
+                        }
                     })
                     .catch(error => {
-                        addLogEntry('Ошибка', 'Не удалось загрузить библиотеку Seismic: ' + error.message);
+                        addLogEntry('Ошибка', 'Ошибка подключения к Seismic: ' + error.message);
+                        connectionStatus.textContent = 'Ошибка подключения';
+                        connectionStatus.className = 'badge bg-danger connection-status';
                     });
             } else {
-                // Если функция загрузки SDK не определена, просто имитируем загрузку
+                // Если SDK не доступен, используем имитацию (существующий код)
                 setTimeout(() => {
                     addLogEntry('Система', 'Библиотека Seismic загружена (имитация)');
+                    connectionStatus.textContent = 'Подключено (имитация)';
+                    connectionStatus.className = 'badge bg-info connection-status';
                     prepareVisualization();
                 }, 1000);
             }
@@ -1443,8 +1459,8 @@ contract PrivateAuction {
             addLogEntry('Система', 'Подключение кошелька...');
             
             // Используем SDK для подключения кошелька
-            if (window.seismic && window.seismic.connect) {
-                window.seismic.connect()
+            if (window.seismicSDK) {
+                seismicSDK.connect()
                     .then(connectedWallet => {
                         wallet = connectedWallet;
                         isConnected = true;
@@ -1453,13 +1469,34 @@ contract PrivateAuction {
                         connectBtn.classList.remove('btn-outline-light');
                         connectBtn.classList.add('btn-success');
                         
+                        // Показываем кнопку фаусета
+                        const faucetBtn = document.getElementById('seismic-faucet-btn');
+                        if (faucetBtn) {
+                            faucetBtn.style.display = 'inline-block';
+                            faucetBtn.href = `${seismicConfig.network.faucet}?address=${wallet.address}`;
+                        }
+                        
                         addLogEntry('Система', `Кошелек подключен: ${wallet.address.substring(0, 8)}...`);
+                        
+                        // Получаем баланс
+                        seismicSDK.getBalance()
+                            .then(balance => {
+                                addLogEntry('Система', `Баланс: ${balance} ETH`);
+                                
+                                // Предлагаем получить тестовые токены, если баланс близок к нулю
+                                if (parseFloat(balance) < 0.01) {
+                                    addLogEntry('Система', 'Для отправки транзакций вам потребуются тестовые токены. Используйте кнопку "Получить тестовые токены".');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Ошибка получения баланса:', error);
+                            });
                     })
                     .catch(error => {
                         addLogEntry('Ошибка', 'Ошибка подключения кошелька: ' + error.message);
                     });
             } else {
-                // Если SDK не доступен, имитируем подключение
+                // Если SDK не доступен, используем имитацию (существующий код)
                 setTimeout(() => {
                     wallet = {
                         address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
@@ -1470,6 +1507,13 @@ contract PrivateAuction {
                     connectBtn.textContent = 'Кошелек подключен';
                     connectBtn.classList.remove('btn-outline-light');
                     connectBtn.classList.add('btn-success');
+                    
+                    // Показываем кнопку фаусета даже в режиме имитации
+                    const faucetBtn = document.getElementById('seismic-faucet-btn');
+                    if (faucetBtn) {
+                        faucetBtn.style.display = 'inline-block';
+                        faucetBtn.href = `${seismicConfig.network.faucet}?address=${wallet.address}`;
+                    }
                     
                     addLogEntry('Система', `Кошелек подключен: ${wallet.address.substring(0, 8)}...`);
                 }, 1000);
@@ -1524,8 +1568,35 @@ contract PrivateAuction {
                 return;
             }
             
-            // Анимация шифрования
-            animateEncryption(dataType, dataValue);
+            // Используем SDK для шифрования или имитируем процесс
+            if (window.seismicSDK) {
+                addLogEntry('Система', `Шифрование ${dataType}: ${dataValue}`);
+                
+                // Вызываем шифрование через SDK
+                seismicSDK.encrypt(dataType, dataValue)
+                    .then(encryptedData => {
+                        currentEncryption = encryptedData;
+                        
+                        // Активируем кнопку отправки транзакции
+                        sendTxBtn.disabled = false;
+                        
+                        // Обновляем анимацию с реальными данными
+                        animateEncryption(dataType, dataValue);
+                        
+                        // Логируем результат
+                        addLogEntry('Шифрование', 
+                            `Данные зашифрованы успешно: ${encryptedData.encryptedValue.substring(0, 10)}...`, 
+                            null, 
+                            encryptedData);
+                    })
+                    .catch(error => {
+                        addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
+                    });
+            } else {
+                // Существующий код имитации
+                // Анимация шифрования
+                animateEncryption(dataType, dataValue);
+            }
         }
         
         // Анимация процесса шифрования
@@ -1571,8 +1642,8 @@ contract PrivateAuction {
                 addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
                 
                 // Шифрование данных с использованием SDK
-                if (window.seismic && window.seismic.encrypt) {
-                    window.seismic.encrypt(dataType, dataValue)
+                if (window.seismicSDK) {
+                    seismicSDK.encrypt(dataType, dataValue)
                         .then(encryptedValue => {
                             // Сохранение результата шифрования
                             currentEncryption = {
@@ -1635,76 +1706,69 @@ contract PrivateAuction {
         
         // Отправка транзакции в блокчейн
         function sendTransaction() {
+            // Проверяем, есть ли зашифрованные данные
             if (!currentEncryption) {
                 addLogEntry('Ошибка', 'Сначала зашифруйте данные');
                 return;
             }
             
-            // Деактивация кнопки
-            sendTxBtn.disabled = true;
+            addLogEntry('Система', 'Отправка транзакции в Seismic...');
             
-            // Активация индикатора сетевой активности
-            const networkActivity = encryptionAnimation.querySelector('.network-activity');
-            networkActivity.classList.add('active');
-            
-            addLogEntry('Транзакция', 'Подготовка транзакции для отправки в Seismic...');
-            
-            // Создание объекта транзакции
-            const txData = {
-                type: currentEncryption.type,
-                value: currentEncryption.encryptedValue,
-                from: wallet.address
-            };
-            
-            // Отправка транзакции через SDK
-            if (window.seismic && window.seismic.sendTransaction) {
-                window.seismic.sendTransaction(txData)
-                    .then(tx => {
-                        addLogEntry('Транзакция', `Отправлена в Seismic, ожидание подтверждения...`, tx.hash);
+            // Используем SDK для отправки или имитируем
+            if (window.seismicSDK) {
+                seismicSDK.sendTransaction(currentEncryption)
+                    .then(result => {
+                        // Показываем анимацию отправки
+                        sendTransactionWithAnimation(
+                            currentEncryption,
+                            result.txHash,
+                            result.blockNumber
+                        );
                         
-                        // Ожидание подтверждения транзакции
-                        return tx.wait();
-                    })
-                    .then(receipt => {
-                        addLogEntry('Транзакция', `Подтверждена и добавлена в блок #${receipt.blockNumber}`, receipt.transactionHash, currentEncryption);
-                        
-                        // Деактивация индикатора сетевой активности
-                        networkActivity.classList.remove('active');
-                        
-                        // Сброс данных формы
-                        txValueInput.value = '';
+                        // Сбрасываем текущее шифрование
                         currentEncryption = null;
+                        sendTxBtn.disabled = true;
                         
-                        // Сброс визуализации
-                        resetVisualization();
+                        // Логируем успешную транзакцию
+                        addLogEntry('Транзакция', 
+                            `Транзакция отправлена и подтверждена в блоке #${result.blockNumber}`, 
+                            result.txHash);
+                            
+                        // Добавляем ссылку на эксплорер
+                        const txLink = document.createElement('a');
+                        txLink.href = `${seismicConfig.network.explorer}/tx/${result.txHash}`;
+                        txLink.target = '_blank';
+                        txLink.textContent = 'Посмотреть в обозревателе блоков';
+                        txLink.className = 'text-info d-block mt-1';
+                        
+                        // Находим последнюю запись в логе
+                        const lastLogEntry = txLog.lastElementChild;
+                        if (lastLogEntry) {
+                            lastLogEntry.appendChild(txLink);
+                        }
                     })
                     .catch(error => {
                         addLogEntry('Ошибка', 'Ошибка отправки транзакции: ' + error.message);
-                        networkActivity.classList.remove('active');
                     });
             } else {
-                // Если SDK не доступен, имитируем отправку транзакции
+                // Имитация процесса отправки (существующий код)
                 setTimeout(() => {
-                    // Генерация хэша транзакции
-                    const txHash = '0x' + Math.random().toString(16).substring(2, 34) + Math.random().toString(16).substring(2, 34);
+                    // Генерируем фиктивный хеш транзакции и номер блока
+                    const txHash = "0x" + Array.from({length: 64}, () => 
+                        Math.floor(Math.random() * 16).toString(16)).join('');
+                    const blockNumber = Math.floor(Math.random() * 1000000) + 1000000;
                     
-                    addLogEntry('Транзакция', `Отправлена в Seismic, ожидание подтверждения...`, txHash);
+                    // Показываем анимацию отправки
+                    sendTransactionWithAnimation(currentEncryption, txHash, blockNumber);
                     
-                    // Имитация подтверждения транзакции
-                    setTimeout(() => {
-                        const blockNumber = Math.floor(Math.random() * 1000000) + 10000000;
-                        addLogEntry('Транзакция', `Подтверждена и добавлена в блок #${blockNumber}`, txHash, currentEncryption);
-                        
-                        // Деактивация индикатора сетевой активности
-                        networkActivity.classList.remove('active');
-                        
-                        // Сброс данных формы
-                        txValueInput.value = '';
-                        currentEncryption = null;
-                        
-                        // Сброс визуализации
-                        resetVisualization();
-                    }, 3000);
+                    // Сбрасываем текущее шифрование
+                    currentEncryption = null;
+                    sendTxBtn.disabled = true;
+                    
+                    // Логируем успешную транзакцию
+                    addLogEntry('Транзакция', 
+                        `Транзакция отправлена и подтверждена в блоке #${blockNumber}`, 
+                        txHash);
                 }, 2000);
             }
         }
