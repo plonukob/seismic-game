@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd seismic-game && npm install && npm run build",
+  "buildCommand": "cd seismic-game && npm install && npx vite build",
   "installCommand": "cd seismic-game && npm install",
   "outputDirectory": "seismic-game/dist"
 } 
