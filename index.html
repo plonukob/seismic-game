@@ -7,6 +7,72 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Основные библиотеки для Ethereum и веб3 -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    
+    <!-- Библиотеки для работы с Seismic (загружаются динамически при необходимости) -->
+    <script type="text/javascript">
+        // Динамическая загрузка библиотеки Seismic
+        window.loadSeismicSDK = function() {
+            return new Promise((resolve, reject) => {
+                // Имитация загрузки библиотеки для демонстрационных целей
+                // В реальном приложении здесь было бы подключение к CDN или использование npm пакета
+                setTimeout(() => {
+                    // Создаём имитацию Seismic клиента
+                    window.seismic = {
+                        // Базовые функции для взаимодействия с Seismic
+                        encrypt: function(type, value) {
+                            return new Promise(resolve => {
+                                // Имитация шифрования с использованием простого алгоритма
+                                const randomHex = Array.from({length: 64}, () => 
+                                    Math.floor(Math.random() * 16).toString(16)
+                                ).join('');
+                                
+                                setTimeout(() => {
+                                    resolve('0x' + randomHex);
+                                }, 1000);
+                            });
+                        },
+                        connect: function() {
+                            return new Promise(resolve => {
+                                setTimeout(() => {
+                                    resolve({
+                                        address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+                                        publicKey: '0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e'
+                                    });
+                                }, 1000);
+                            });
+                        },
+                        sendTransaction: function(data) {
+                            return new Promise(resolve => {
+                                setTimeout(() => {
+                                    const txHash = '0x' + Math.random().toString(16).substring(2, 34) + Math.random().toString(16).substring(2, 34);
+                                    resolve({
+                                        hash: txHash,
+                                        wait: function() {
+                                            return new Promise(innerResolve => {
+                                                setTimeout(() => {
+                                                    innerResolve({
+                                                        status: 1,
+                                                        blockNumber: Math.floor(Math.random() * 1000000) + 10000000,
+                                                        transactionHash: txHash
+                                                    });
+                                                }, 2000);
+                                            });
+                                        }
+                                    });
+                                }, 1000);
+                            });
+                        }
+                    };
+                    
+                    resolve(window.seismic);
+                }, 1500);
+            });
+        };
+    </script>
 </head>
 <body>
     <header class="bg-dark text-white p-4">
@@ -241,7 +307,188 @@
         </div>
     </section>
 
-    <section id="examples" class="py-5">
+    <section id="games" class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h2 class="section-title">Интерактивное обучение</h2>
+                    <p class="section-subtitle">Узнайте больше о технологии Seismic через игры и интерактивные демонстрации</p>
+                </div>
+            </div>
+            
+            <!-- Игра "Криптографический пазл" -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="game-container" id="crypto-puzzle-game">
+                        <!-- Стартовый экран -->
+                        <div class="game-overlay" id="crypto-puzzle-start">
+                            <div class="overlay-content bg-white p-4 rounded shadow-lg">
+                                <h3 class="mb-3">Криптографический пазл</h3>
+                                <p>Соберите шаги шифрования в правильном порядке и узнайте, как работает технология Seismic!</p>
+                                <button id="crypto-puzzle-start-btn" class="btn btn-primary">Начать игру</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Финальный экран -->
+                        <div class="game-overlay" id="crypto-puzzle-end" style="display: none;">
+                            <div class="overlay-content bg-white p-4 rounded shadow-lg">
+                                <h3 class="mb-3">Игра завершена!</h3>
+                                <p>Вы прошли <span id="puzzle-final-level">0</span> уровней.</p>
+                                <p id="puzzle-final-message"></p>
+                                <button id="crypto-puzzle-restart-btn" class="btn btn-primary">Играть снова</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Основной игровой интерфейс -->
+                        <div class="game-interface bg-light p-3 rounded">
+                            <div class="game-header d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="badge bg-primary">Уровень: <span id="puzzle-level">1</span></span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-danger">Время: <span id="puzzle-timer">60</span> сек</span>
+                                </div>
+                            </div>
+                            
+                            <div class="game-description mb-3">
+                                <p id="puzzle-description" class="mb-0">Соберите шаги для создания Seismic-транзакции в правильном порядке</p>
+                            </div>
+                            
+                            <div class="game-board">
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <div class="solution-container bg-light border rounded p-3" id="puzzle-solution-container">
+                                            <div class="text-center text-secondary">Перетащите блоки сюда</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <div class="data-container bg-white border rounded p-3" id="puzzle-data-container">
+                                            <!-- Элементы для перетаскивания будут добавлены через JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-controls mt-3 text-center">
+                                    <button id="puzzle-submit-btn" class="btn btn-success">Проверить</button>
+                                </div>
+                                
+                                <div id="puzzle-feedback" class="alert mt-3" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Здесь можно добавить другие игры -->
+            
+            <!-- Игра "Seismic Explorer" -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="game-container" id="seismic-explorer-game">
+                        <!-- Стартовый экран -->
+                        <div class="game-overlay" id="seismic-explorer-start">
+                            <div class="overlay-content bg-white p-4 rounded shadow-lg">
+                                <h3 class="mb-3">Seismic Explorer</h3>
+                                <p>Создайте и отправьте зашифрованные транзакции в реальном блокчейне Seismic!</p>
+                                <p class="small text-muted mb-3">Эта игра подключается к тестовой сети Seismic и демонстрирует работу со скрытыми данными</p>
+                                <button id="seismic-explorer-start-btn" class="btn btn-primary">Начать исследование</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Основной игровой интерфейс -->
+                        <div class="game-interface bg-dark text-light p-3 rounded" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="m-0">Seismic Explorer</h4>
+                                <div>
+                                    <span class="badge bg-success connection-status">Подключение...</span>
+                                    <button id="seismic-explorer-connect-btn" class="btn btn-sm btn-outline-light ms-2">Подключить кошелек</button>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card bg-dark text-light border border-secondary">
+                                        <div class="card-header bg-primary">
+                                            Создание транзакции
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="seismic-tx-type" class="form-label">Тип данных</label>
+                                                <select class="form-select" id="seismic-tx-type">
+                                                    <option value="suint">suint - Зашифрованное число</option>
+                                                    <option value="saddress">saddress - Зашифрованный адрес</option>
+                                                    <option value="sbool">sbool - Зашифрованный булев тип</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="seismic-tx-value" class="form-label">Значение</label>
+                                                <input type="text" class="form-control" id="seismic-tx-value" placeholder="Введите значение для шифрования">
+                                            </div>
+                                            
+                                            <button id="seismic-encrypt-btn" class="btn btn-primary">Зашифровать данные</button>
+                                            <button id="seismic-send-tx-btn" class="btn btn-success ms-2" disabled>Отправить в блокчейн</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="card bg-dark text-light border border-secondary">
+                                        <div class="card-header bg-primary">
+                                            Визуализация шифрования
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="encryption-visualization" id="encryption-animation">
+                                                <!-- Здесь будет анимация процесса шифрования -->
+                                                <div class="text-center py-5">
+                                                    <p class="mb-2">Нажмите "Зашифровать данные", чтобы начать</p>
+                                                    <div class="encryption-state-initial">
+                                                        <i class="bi bi-unlock fs-1"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="card bg-dark text-light border border-secondary">
+                                        <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                                            <span>Лог событий блокчейна</span>
+                                            <button id="seismic-clear-log-btn" class="btn btn-sm btn-outline-light">Очистить</button>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="blockchain-log p-2 bg-dark" id="seismic-tx-log" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; border: 1px solid #444;">
+                                                <div class="text-secondary">Лог транзакций будет отображаться здесь...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Пояснение принципов работы -->
+                            <div class="mt-4 p-3 border border-secondary rounded">
+                                <h5>Как это работает?</h5>
+                                <p class="small mb-2">Seismic использует Homomorphic Encryption и Zero-Knowledge Proofs для защиты данных:</p>
+                                <ol class="small mb-0">
+                                    <li>Данные шифруются на стороне клиента с использованием FHE (Fully Homomorphic Encryption)</li>
+                                    <li>Зашифрованные данные отправляются в блокчейн и обрабатываются без расшифровки</li>
+                                    <li>Trusted Execution Environment (TEE) обрабатывает данные, сохраняя конфиденциальность</li>
+                                    <li>ZK-доказательства подтверждают корректность операций без раскрытия данных</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </section>
+
+    <section id="examples" class="py-5 bg-light">
         <div class="container">
             <h2 class="display-5 text-center mb-5">Реальные примеры использования</h2>
             <div class="row g-4">

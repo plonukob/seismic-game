@@ -1,10 +1,11 @@
 {
-  "name": "seismic-game-root",
+  "name": "seismic-experience",
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "install": "cd seismic-game && npm install",
-    "build": "cd seismic-game && npm run build",
-    "start": "cd seismic-game && npm run preview"
+    "start": "serve ."
+  },
+  "dependencies": {
+    "serve": "^14.0.0"
   }
 } 

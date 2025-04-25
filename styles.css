@@ -196,4 +196,324 @@ body {
     .blockchain-animation {
         transform: scale(0.7);
     }
+}
+
+/* Стили для криптографического пазла */
+.puzzle-container {
+    position: relative;
+    min-height: 400px;
+}
+
+.puzzle-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+    text-align: center;
+}
+
+.puzzle-data-container {
+    min-height: 100px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.puzzle-solution-container {
+    min-height: 150px;
+    background-color: #e9ecef;
+    border: 2px dashed #ced4da;
+    border-radius: 5px;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+.puzzle-item {
+    cursor: move;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.puzzle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.puzzle-item.in-solution {
+    background-color: #f0f8ff !important;
+    border-color: #007bff;
+}
+
+.level-timer-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.puzzle-description {
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+/* Стили для игры "Криптографический пазл" */
+.game-container {
+    position: relative;
+    min-height: 400px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.overlay-content {
+    max-width: 400px;
+    text-align: center;
+}
+
+.game-interface {
+    min-height: 350px;
+}
+
+.solution-container {
+    min-height: 120px;
+    background-color: #e9ecef;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+}
+
+.data-container {
+    min-height: 100px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.puzzle-item {
+    padding: 10px 15px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    cursor: move;
+    user-select: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.puzzle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.puzzle-item.in-solution {
+    border-color: var(--primary);
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+.draggable {
+    cursor: grab;
+}
+
+.draggable:active {
+    cursor: grabbing;
+}
+
+/* Стили для Seismic Explorer */
+#seismic-explorer-game .game-interface {
+    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+}
+
+.encryption-visualization {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.encryption-state-initial, 
+.encryption-state-processing,
+.encryption-state-encrypted {
+    transition: all 0.5s ease;
+    text-align: center;
+}
+
+.encryption-state-initial i {
+    color: #dc3545;
+}
+
+.encryption-state-processing {
+    color: var(--encryption-highlight);
+}
+
+.encryption-state-encrypted i {
+    color: #28a745;
+}
+
+.data-particle {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background-color: var(--encryption-highlight);
+    border-radius: 50%;
+    opacity: 0.7;
+    filter: blur(2px);
+    box-shadow: 0 0 10px var(--encryption-highlight);
+    transition: transform 0.3s linear;
+}
+
+.original-data, .encrypted-data {
+    position: absolute;
+    padding: 10px 15px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 5px;
+    transition: all 0.5s ease;
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.original-data {
+    left: 10px;
+    top: 10px;
+    color: white;
+    border-left: 3px solid #dc3545;
+}
+
+.encrypted-data {
+    right: 10px;
+    bottom: 10px;
+    color: var(--encryption-highlight);
+    border-left: 3px solid var(--encryption-highlight);
+}
+
+.blockchain-log {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.blockchain-log .log-entry {
+    margin-bottom: 5px;
+    padding: 5px;
+    border-bottom: 1px solid #333;
+}
+
+.blockchain-log .log-entry .timestamp {
+    color: #6c757d;
+}
+
+.blockchain-log .log-entry .event-name {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.blockchain-log .log-entry .tx-hash {
+    color: var(--encryption-highlight);
+}
+
+.blockchain-log .log-entry .encrypted-value {
+    color: #ffc107;
+}
+
+.tee-processor {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--encryption-highlight);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--encryption-highlight);
+    box-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.tee-processor.active {
+    opacity: 1;
+    animation: pulsate 2s infinite;
+}
+
+@keyframes pulsate {
+    0% { box-shadow: 0 0 20px rgba(76, 201, 240, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(76, 201, 240, 0.8); }
+    100% { box-shadow: 0 0 20px rgba(76, 201, 240, 0.5); }
+}
+
+.zk-proof {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #28a745;
+    color: #28a745;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.zk-proof.active {
+    opacity: 1;
+}
+
+/* Анимация для сетевых запросов */
+.network-activity {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-image: linear-gradient(to right, transparent, var(--encryption-highlight), transparent);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.network-activity.active {
+    opacity: 1;
+    animation: slide 1.5s infinite;
+}
+
+@keyframes slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 } 

@@ -1,6 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "cd seismic-game && npm install && node ./node_modules/vite/bin/vite.js build",
-  "installCommand": "cd seismic-game && npm install",
-  "outputDirectory": "seismic-game/dist"
+  "builds": [
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.js", "use": "@vercel/static" },
+    { "src": "*.css", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
 } 
