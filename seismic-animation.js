@@ -93,8 +93,93 @@ function createSeismicConnections(container) {
     });
 }
 
-// Экспортируем функцию для использования
+// Функция для создания анимации частиц шифрования
+function createEncryptionParticles(container) {
+    if (!container) return;
+    
+    // Получаем размер контейнера
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Создаем частицы, которые будут двигаться от originalData к encryptedData
+    const originalData = container.querySelector('.original-data');
+    const encryptedData = container.querySelector('.encrypted-data');
+    const teeProcessor = container.querySelector('.tee-processor');
+    
+    if (!originalData || !encryptedData || !teeProcessor) return;
+    
+    // Получаем позиции элементов
+    const originalRect = originalData.getBoundingClientRect();
+    const encryptedRect = encryptedData.getBoundingClientRect();
+    const teeRect = teeProcessor.getBoundingClientRect();
+    
+    // Вычисляем стартовую и конечную позиции относительно контейнера
+    const startX = originalRect.left - containerRect.left + originalRect.width / 2;
+    const startY = originalRect.top - containerRect.top + originalRect.height / 2;
+    
+    const teeX = teeRect.left - containerRect.left + teeRect.width / 2;
+    const teeY = teeRect.top - containerRect.top + teeRect.height / 2;
+    
+    const endX = encryptedRect.left - containerRect.left + encryptedRect.width / 2;
+    const endY = encryptedRect.top - containerRect.top + encryptedRect.height / 2;
+    
+    // Создаем частицы
+    const particleCount = 20;
+    const colors = ['#4cc9f0', '#3a86ff', '#4361ee', '#7209b7', '#9b5de5'];
+    
+    for (let i = 0; i < particleCount; i++) {
+        // Создаем частицу
+        const particle = document.createElement('div');
+        particle.className = 'data-particle';
+        
+        // Случайный размер частицы
+        const size = Math.floor(Math.random() * 8) + 4;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Случайный цвет из палитры
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.backgroundColor = color;
+        particle.style.boxShadow = `0 0 ${size}px ${color}`;
+        
+        // Начальная позиция - вокруг originalData
+        const offset = size * 2;
+        particle.style.left = `${startX + (Math.random() * offset - offset/2)}px`;
+        particle.style.top = `${startY + (Math.random() * offset - offset/2)}px`;
+        
+        // Добавляем частицу в контейнер
+        container.appendChild(particle);
+        
+        // Первая анимация - от originalData к teeProcessor
+        setTimeout(() => {
+            // Плавный переход к teeProcessor
+            particle.style.transition = 'all 1s ease-in-out';
+            particle.style.left = `${teeX + (Math.random() * 20 - 10)}px`;
+            particle.style.top = `${teeY + (Math.random() * 20 - 10)}px`;
+        }, 100 + i * 50);
+        
+        // Вторая анимация - от teeProcessor к encryptedData
+        setTimeout(() => {
+            // Меняем цвет на более яркий (шифрованный)
+            particle.style.backgroundColor = '#7209b7';
+            particle.style.boxShadow = `0 0 ${size * 1.5}px #7209b7`;
+            
+            // Плавный переход к encryptedData
+            particle.style.left = `${endX + (Math.random() * offset - offset/2)}px`;
+            particle.style.top = `${endY + (Math.random() * offset - offset/2)}px`;
+        }, 1500 + i * 50);
+        
+        // Удаляем частицу после завершения анимации
+        setTimeout(() => {
+            particle.remove();
+        }, 3000 + i * 50);
+    }
+}
+
+// Экспортируем функции для использования
 window.animateSeismicData = animateSeismicData;
+window.createEncryptionParticles = createEncryptionParticles;
 
 // Добавляем обработчик кнопки управления сейсмической анимацией
 document.addEventListener('DOMContentLoaded', function() {
@@ -137,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Добавляем инициализацию анимации криптографической головоломки при загрузке страницы
+// Добавляем инициализацию анимации при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     // Получаем контейнеры для анимации (два разных ID используются в HTML)
     const encryptionAnimation = document.getElementById('encryptionAnimation') || 
@@ -165,6 +250,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 teeProcessor.style.transform = 'translate(-50%, -50%)';
                 
                 encryptionAnimation.appendChild(teeProcessor);
+            }
+            
+            // Добавляем структуру блокчейн-блока, если её нет
+            if (!encryptionAnimation.querySelector('.blockchain-block')) {
+                const blockchainBlock = document.createElement('div');
+                blockchainBlock.className = 'blockchain-block';
+                blockchainBlock.innerHTML = `
+                    <div class="block-header">Блок <span class="block-number">#0000000</span></div>
+                    <div class="block-content">
+                        <div class="encrypted-value">0x0000...</div>
+                    </div>
+                `;
+                
+                // Позиционируем блок в правом нижнем углу
+                blockchainBlock.style.position = 'absolute';
+                blockchainBlock.style.right = '10%';
+                blockchainBlock.style.bottom = '10%';
+                blockchainBlock.style.width = '150px';
+                blockchainBlock.style.fontSize = '0.8rem';
+                
+                encryptionAnimation.appendChild(blockchainBlock);
             }
             
             // Запускаем анимацию сейсмических волн

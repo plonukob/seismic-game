@@ -10,1334 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Изменение полей формы в зависимости от типа транзакции
-    const txTypeSelect = document.getElementById('tx-type');
-    if (txTypeSelect) {
-        txTypeSelect.addEventListener('change', function() {
-            const paymentFields = document.getElementById('payment-fields');
-            const nftFields = document.getElementById('nft-fields');
-            const voteFields = document.getElementById('vote-fields');
-            
-            paymentFields.style.display = 'none';
-            nftFields.style.display = 'none';
-            voteFields.style.display = 'none';
-            
-            switch(this.value) {
-                case 'payment':
-                    paymentFields.style.display = 'block';
-                    break;
-                case 'nft':
-                    nftFields.style.display = 'block';
-                    break;
-                case 'vote':
-                    voteFields.style.display = 'block';
-                    break;
-            }
-        });
-    }
-
-    // Обработка кнопки генерации транзакции
-    const generateTxBtn = document.getElementById('generate-tx-btn');
-    if (generateTxBtn) {
-        generateTxBtn.addEventListener('click', generateTransaction);
-    }
-
-    // Функция генерации транзакции
-    function generateTransaction() {
-        const txType = document.getElementById('tx-type').value;
-        const useEncryption = document.getElementById('use-encryption').checked;
-        
-        // Получение значений из формы в зависимости от типа транзакции
-        let txData = {};
-        switch(txType) {
-            case 'payment':
-                txData = {
-                    recipient: document.getElementById('recipient').value,
-                    amount: document.getElementById('amount').value
-                };
-                break;
-            case 'nft':
-                txData = {
-                    recipient: document.getElementById('nft-recipient').value,
-                    tokenId: document.getElementById('token-id').value
-                };
-                break;
-            case 'vote':
-                txData = {
-                    proposalId: document.getElementById('proposal').value,
-                    choice: document.getElementById('vote-choice').value === '1'
-                };
-                break;
-        }
-        
-        // Генерация и отображение транзакций
-        displayPublicTransaction(txType, txData);
-        if (useEncryption) {
-            displayEncryptedTransaction(txType, txData);
-        } else {
-            // Очистить зашифрованную транзакцию, если шифрование отключено
-            document.getElementById('encrypted-tx-output').textContent = 'Шифрование Seismic отключено';
-        }
-    }
-
-    // Отображение публичной транзакции
-    function displayPublicTransaction(txType, data) {
-        const output = document.getElementById('public-tx-output');
-        let txContent = '';
-        
-        switch(txType) {
-            case 'payment':
-                txContent = generatePaymentTransaction(data, false);
-                break;
-            case 'nft':
-                txContent = generateNftTransaction(data, false);
-                break;
-            case 'vote':
-                txContent = generateVoteTransaction(data, false);
-                break;
-        }
-        
-        output.innerHTML = txContent;
-    }
-
-    // Отображение зашифрованной транзакции
-    function displayEncryptedTransaction(txType, data) {
-        const output = document.getElementById('encrypted-tx-output');
-        let txContent = '';
-        
-        switch(txType) {
-            case 'payment':
-                txContent = generatePaymentTransaction(data, true);
-                break;
-            case 'nft':
-                txContent = generateNftTransaction(data, true);
-                break;
-            case 'vote':
-                txContent = generateVoteTransaction(data, true);
-                break;
-        }
-        
-        output.innerHTML = txContent;
-    }
-
-    // Генерация транзакции платежа
-    function generatePaymentTransaction(data, encrypted) {
-        const { recipient, amount } = data;
-        
-        // Генерация хэша для имитации данных транзакции
-        const functionHash = '0x7c26101e'; // Хэш фукнции transfer(address,uint256)
-        const functionHashEncrypted = '0x9e8c1a2f'; // Хэш функции transfer(saddress,suint256)
-        
-        // Публичная транзакция
-        if (!encrypted) {
-            const recipientPadded = recipient.slice(2).padStart(64, '0');
-            const amountHex = parseInt(amount).toString(16).padStart(64, '0');
-            
-            return `// Публичная транзакция - ВИДИМАЯ ДЛЯ ВСЕХ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7", // Контракт платежей
-  "data": "${functionHash}000000000000000000000000${recipient.slice(2)}${amountHex}",
-  "value": "0",
-  "gasLimit": "210000",
-  "function": "transfer(address to, uint256 amount)",
-  "parameters": {
-    "to": "${recipient}",
-    "amount": "${amount}"
-  }
-}`;
-        } 
-        // Зашифрованная транзакция Seismic
-        else {
-            // Генерируем случайную последовательность для имитации зашифрованных данных
-            const encryptedData = generateRandomHex(512);
-            
-            return `// Зашифрованная транзакция Seismic - ПРИВАТНАЯ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7", // Контракт платежей
-  "data": "${functionHashEncrypted}${encryptedData}",
-  "value": "0",
-  "gasLimit": "240000",
-  "function": "transfer(saddress to, suint256 amount)",
-  "parameters": {
-    "to": "ЗАШИФРОВАНО", // Значение: ${recipient}
-    "amount": "ЗАШИФРОВАНО" // Значение: ${amount}
-  },
-  "encryptionPubkey": "0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e"
-}`;
-        }
-    }
-
-    // Генерация транзакции NFT
-    function generateNftTransaction(data, encrypted) {
-        const { recipient, tokenId } = data;
-        
-        // Генерация хэша для имитации данных транзакции
-        const functionHash = '0x42842e0e'; // Хэш фукнции safeTransferFrom(address,address,uint256)
-        const functionHashEncrypted = '0x8737c5ef'; // Хэш функции safeTransferFrom(address,saddress,uint256)
-        
-        // Публичная транзакция
-        if (!encrypted) {
-            const senderPadded = '71C7656EC7ab88b098defB751B7401B5f6d8976F'.padStart(64, '0');
-            const recipientPadded = recipient.slice(2).padStart(64, '0');
-            const tokenIdHex = parseInt(tokenId).toString(16).padStart(64, '0');
-            
-            return `// Публичная транзакция NFT - ВИДИМАЯ ДЛЯ ВСЕХ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0x3B1A05d8B7842bE8E8F6A36a17CB87A191E0b5Ad", // Контракт NFT
-  "data": "${functionHash}000000000000000000000000${senderPadded}000000000000000000000000${recipientPadded}${tokenIdHex}",
-  "value": "0",
-  "gasLimit": "250000",
-  "function": "safeTransferFrom(address from, address to, uint256 tokenId)",
-  "parameters": {
-    "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-    "to": "${recipient}",
-    "tokenId": "${tokenId}"
-  }
-}`;
-        } 
-        // Зашифрованная транзакция Seismic
-        else {
-            // Генерируем случайную последовательность для имитации зашифрованных данных
-            const encryptedData = generateRandomHex(512);
-            
-            return `// Зашифрованная транзакция NFT Seismic - ПРИВАТНАЯ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0x3B1A05d8B7842bE8E8F6A36a17CB87A191E0b5Ad", // Контракт NFT
-  "data": "${functionHashEncrypted}${encryptedData}",
-  "value": "0",
-  "gasLimit": "290000",
-  "function": "safeTransferFrom(address from, saddress to, uint256 tokenId)",
-  "parameters": {
-    "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-    "to": "ЗАШИФРОВАНО", // Значение: ${recipient}
-    "tokenId": "${tokenId}"
-  },
-  "encryptionPubkey": "0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e"
-}`;
-        }
-    }
-
-    // Генерация транзакции голосования
-    function generateVoteTransaction(data, encrypted) {
-        const { proposalId, choice } = data;
-        
-        // Генерация хэша для имитации данных транзакции
-        const functionHash = '0xc9d27afe'; // Хэш фукнции vote(uint256,bool)
-        const functionHashEncrypted = '0xe69b5789'; // Хэш функции vote(uint256,sbool)
-        
-        // Публичная транзакция
-        if (!encrypted) {
-            const proposalIdHex = parseInt(proposalId).toString(16).padStart(64, '0');
-            const choiceHex = choice ? '1'.padStart(64, '0') : '0'.padStart(64, '0');
-            
-            return `// Публичная транзакция голосования - ВИДИМАЯ ДЛЯ ВСЕХ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0xA0D4E5CcB74dC2ad7cA47a176260a741f72CEe4d", // Контракт голосования
-  "data": "${functionHash}${proposalIdHex}${choiceHex}",
-  "value": "0",
-  "gasLimit": "180000",
-  "function": "vote(uint256 proposalId, bool choice)",
-  "parameters": {
-    "proposalId": "${proposalId}",
-    "choice": "${choice ? 'true (ЗА)' : 'false (ПРОТИВ)'}"
-  }
-}`;
-        } 
-        // Зашифрованная транзакция Seismic
-        else {
-            // Генерируем случайную последовательность для имитации зашифрованных данных
-            const encryptedData = generateRandomHex(512);
-            
-            return `// Зашифрованная транзакция голосования Seismic - ПРИВАТНАЯ
-{
-  "from": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-  "to": "0xA0D4E5CcB74dC2ad7cA47a176260a741f72CEe4d", // Контракт голосования
-  "data": "${functionHashEncrypted}${proposalId.padStart(64, '0')}${encryptedData}",
-  "value": "0",
-  "gasLimit": "200000",
-  "function": "vote(uint256 proposalId, sbool choice)",
-  "parameters": {
-    "proposalId": "${proposalId}",
-    "choice": "ЗАШИФРОВАНО" // Значение: ${choice ? 'true (ЗА)' : 'false (ПРОТИВ)'}
-  },
-  "encryptionPubkey": "0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e"
-}`;
-        }
-    }
-
-    // Генерация случайной шестнадцатеричной строки
-    function generateRandomHex(length) {
-        const hexChars = '0123456789abcdef';
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
-        }
-        return result;
-    }
-
-    // ==================== ИГРОВЫЕ ФУНКЦИИ ====================
-
-    // Защити свои данные - игра
-    function initDataProtectionGame() {
-        const startBtn = document.getElementById('data-protection-start-btn');
-        const restartBtn = document.getElementById('data-protection-restart-btn');
-        const startOverlay = document.getElementById('data-protection-start');
-        const endOverlay = document.getElementById('data-protection-end');
-        const scoreDisplay = document.getElementById('data-protection-score');
-        const finalScoreDisplay = document.getElementById('data-protection-final-score');
-        const timerDisplay = document.getElementById('data-protection-timer');
-        const dataField = document.getElementById('data-field');
-        
-        if (!startBtn) return; // Выход если элементы не найдены
-        
-        let score = 0;
-        let timer = 60;
-        let gameInterval;
-        let dataItems = [];
-        let hackers = [];
-        
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', () => {
-            endOverlay.style.display = 'none';
-            startOverlay.style.display = 'flex';
-        });
-        
-        function startGame() {
-            // Сброс игры
-            score = 0;
-            timer = 60;
-            dataItems = [];
-            hackers = [];
-            dataField.innerHTML = '';
-            scoreDisplay.textContent = '0';
-            timerDisplay.textContent = '60';
-            
-            // Скрыть стартовый экран
-            startOverlay.style.display = 'none';
-            
-            // Начать игровой цикл
-            gameInterval = setInterval(() => {
-                updateGame();
-                
-                // Уменьшить таймер
-                timer--;
-                timerDisplay.textContent = timer;
-                
-                if (timer <= 0) {
-                    endGame();
-                }
-            }, 1000);
-            
-            // Создавать данные каждые 2 секунды
-            setInterval(createData, 2000);
-            
-            // Создавать хакеров каждые 3 секунды
-            setInterval(createHacker, 3000);
-        }
-        
-        function createData() {
-            if (timer <= 0) return;
-            
-            const data = document.createElement('div');
-            data.className = 'data-item position-absolute bg-warning p-2 rounded';
-            data.style.left = Math.random() * (dataField.offsetWidth - 80) + 'px';
-            data.style.top = Math.random() * (dataField.offsetHeight - 40) + 'px';
-            
-            // Выбрать случайный тип данных
-            const dataTypes = ['Адрес', 'Сумма', 'Голос', 'Ставка'];
-            const dataType = dataTypes[Math.floor(Math.random() * dataTypes.length)];
-            data.innerHTML = dataType;
-            data.dataset.encrypted = 'false';
-            
-            // Добавить функцию шифрования при клике
-            data.addEventListener('click', () => {
-                if (data.dataset.encrypted === 'false') {
-                    data.dataset.encrypted = 'true';
-                    data.className = 'data-item position-absolute bg-primary text-white p-2 rounded';
-                    data.innerHTML = '🔒 ' + dataType;
-                    score += 10;
-                    scoreDisplay.textContent = score;
-                }
-            });
-            
-            dataField.appendChild(data);
-            dataItems.push(data);
-        }
-        
-        function createHacker() {
-            if (timer <= 0) return;
-            
-            const hacker = document.createElement('div');
-            hacker.className = 'hacker position-absolute bg-danger text-white p-1 rounded';
-            
-            // Разместить хакера за пределами поля
-            const side = Math.floor(Math.random() * 4); // 0-верх, 1-право, 2-низ, 3-лево
-            
-            switch(side) {
-                case 0: // сверху
-                    hacker.style.left = Math.random() * dataField.offsetWidth + 'px';
-                    hacker.style.top = '-20px';
-                    hacker.dataset.dirX = Math.random() * 2 - 1; // -1 до 1
-                    hacker.dataset.dirY = Math.random() * 0.5 + 0.5; // 0.5 до 1
-                    break;
-                case 1: // справа
-                    hacker.style.left = dataField.offsetWidth + 'px';
-                    hacker.style.top = Math.random() * dataField.offsetHeight + 'px';
-                    hacker.dataset.dirX = -Math.random() * 0.5 - 0.5; // -1 до -0.5
-                    hacker.dataset.dirY = Math.random() * 2 - 1; // -1 до 1
-                    break;
-                case 2: // снизу
-                    hacker.style.left = Math.random() * dataField.offsetWidth + 'px';
-                    hacker.style.top = dataField.offsetHeight + 'px';
-                    hacker.dataset.dirX = Math.random() * 2 - 1; // -1 до 1
-                    hacker.dataset.dirY = -Math.random() * 0.5 - 0.5; // -1 до -0.5
-                    break;
-                case 3: // слева
-                    hacker.style.left = '-20px';
-                    hacker.style.top = Math.random() * dataField.offsetHeight + 'px';
-                    hacker.dataset.dirX = Math.random() * 0.5 + 0.5; // 0.5 до 1
-                    hacker.dataset.dirY = Math.random() * 2 - 1; // -1 до 1
-                    break;
-            }
-            
-            hacker.innerHTML = '🦹‍♂️';
-            dataField.appendChild(hacker);
-            hackers.push(hacker);
-        }
-        
-        function updateGame() {
-            // Обновление положения хакеров
-            hackers.forEach((hacker, index) => {
-                const x = parseFloat(hacker.style.left);
-                const y = parseFloat(hacker.style.top);
-                const dirX = parseFloat(hacker.dataset.dirX);
-                const dirY = parseFloat(hacker.dataset.dirY);
-                
-                // Переместить хакера
-                hacker.style.left = (x + dirX * 5) + 'px';
-                hacker.style.top = (y + dirY * 5) + 'px';
-                
-                // Удалить хакера, если он вышел за пределы
-                if (x < -30 || x > dataField.offsetWidth + 30 || 
-                    y < -30 || y > dataField.offsetHeight + 30) {
-                    dataField.removeChild(hacker);
-                    hackers.splice(index, 1);
-                }
-                
-                // Проверить столкновение с данными
-                dataItems.forEach((data, dataIndex) => {
-                    if (isColliding(hacker, data)) {
-                        if (data.dataset.encrypted === 'false') {
-                            // Данные украдены
-                            dataField.removeChild(data);
-                            dataItems.splice(dataIndex, 1);
-                            score -= 5;
-                            if (score < 0) score = 0;
-                            scoreDisplay.textContent = score;
-                        }
-                    }
-                });
-            });
-        }
-        
-        function isColliding(el1, el2) {
-            const rect1 = el1.getBoundingClientRect();
-            const rect2 = el2.getBoundingClientRect();
-            
-            return !(rect1.right < rect2.left || 
-                    rect1.left > rect2.right || 
-                    rect1.bottom < rect2.top || 
-                    rect1.top > rect2.bottom);
-        }
-        
-        function endGame() {
-            clearInterval(gameInterval);
-            finalScoreDisplay.textContent = score;
-            endOverlay.style.display = 'flex';
-        }
-    }
-    
-    // Угадай транзакцию - игра
-    function initGuessTxGame() {
-        const startBtn = document.getElementById('guess-tx-start-btn');
-        const restartBtn = document.getElementById('guess-tx-restart-btn');
-        const submitBtn = document.getElementById('guess-tx-submit-btn');
-        const startOverlay = document.getElementById('guess-tx-start');
-        const endOverlay = document.getElementById('guess-tx-end');
-        const scoreDisplay = document.getElementById('guess-tx-score');
-        const roundDisplay = document.getElementById('guess-tx-round');
-        const finalScoreDisplay = document.getElementById('guess-tx-final-score');
-        const finalMessage = document.getElementById('guess-tx-final-message');
-        const optionLabels = [
-            document.getElementById('tx-option-1-label'),
-            document.getElementById('tx-option-2-label'),
-            document.getElementById('tx-option-3-label')
-        ];
-        const options = document.querySelectorAll('.tx-option');
-        
-        if (!startBtn) return; // Выход если элементы не найдены
-        
-        let score = 0;
-        let round = 1;
-        let correctOption = 0;
-        
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', () => {
-            endOverlay.style.display = 'none';
-            startOverlay.style.display = 'flex';
-        });
-        
-        // Подготовить слушателей для радио-кнопок
-        options.forEach(option => {
-            option.addEventListener('change', () => {
-                submitBtn.disabled = false;
-            });
-        });
-        
-        submitBtn.addEventListener('click', () => {
-            // Проверить выбранный ответ
-            const selectedOption = document.querySelector('input[name="txOption"]:checked');
-            if (!selectedOption) return;
-            
-            if (parseInt(selectedOption.value) === correctOption) {
-                score++;
-                scoreDisplay.textContent = score;
-            }
-            
-            // Перейти к следующему раунду
-            round++;
-            if (round > 10) {
-                endGame();
-            } else {
-                roundDisplay.textContent = round;
-                setupRound();
-                
-                // Сбросить выбор
-                options.forEach(option => option.checked = false);
-                submitBtn.disabled = true;
-            }
-        });
-        
-        function startGame() {
-            // Сброс игры
-            score = 0;
-            round = 1;
-            scoreDisplay.textContent = '0';
-            roundDisplay.textContent = '1';
-            
-            // Скрыть стартовый экран
-            startOverlay.style.display = 'none';
-            
-            // Подготовить первый раунд
-            setupRound();
-        }
-        
-        function setupRound() {
-            // Выбрать случайную правильную опцию (1-3)
-            correctOption = Math.floor(Math.random() * 3) + 1;
-            
-            // Подготовить описания транзакций
-            const txTypes = ['Платеж', 'NFT Трансфер', 'Голосование', 'Аукцион'];
-            const txType = txTypes[Math.floor(Math.random() * txTypes.length)];
-            
-            // Генерировать содержимое для опций
-            for (let i = 0; i < 3; i++) {
-                const isCorrect = (i + 1) === correctOption;
-                
-                // Общая информация в транзакциях
-                let txContent = `${txType}: `;
-                
-                // Транзакция с Seismic-шифрованием
-                if (isCorrect) {
-                    switch(txType) {
-                        case 'Платеж':
-                            txContent += `transfer(saddress 0x12ab..., suint256 ${Math.floor(Math.random() * 1000)})`;
-                            break;
-                        case 'NFT Трансфер':
-                            txContent += `safeTransferFrom(address 0x34cd..., saddress 0x56ef..., uint256 ${Math.floor(Math.random() * 100)})`;
-                            break;
-                        case 'Голосование':
-                            txContent += `vote(uint256 ${Math.floor(Math.random() * 10)}, sbool ${Math.random() > 0.5})`;
-                            break;
-                        case 'Аукцион':
-                            txContent += `placeBid(uint256 ${Math.floor(Math.random() * 5)}, suint256 ${Math.floor(Math.random() * 10000)})`;
-                            break;
-                    }
-                }
-                // Обычная транзакция
-                else {
-                    switch(txType) {
-                        case 'Платеж':
-                            txContent += `transfer(address 0x${generateRandomHex(4)}..., uint256 ${Math.floor(Math.random() * 1000)})`;
-                            break;
-                        case 'NFT Трансфер':
-                            txContent += `safeTransferFrom(address 0x${generateRandomHex(4)}..., address 0x${generateRandomHex(4)}..., uint256 ${Math.floor(Math.random() * 100)})`;
-                            break;
-                        case 'Голосование':
-                            txContent += `vote(uint256 ${Math.floor(Math.random() * 10)}, bool ${Math.random() > 0.5})`;
-                            break;
-                        case 'Аукцион':
-                            txContent += `placeBid(uint256 ${Math.floor(Math.random() * 5)}, uint256 ${Math.floor(Math.random() * 10000)})`;
-                            break;
-                    }
-                }
-                
-                optionLabels[i].textContent = txContent;
-            }
-        }
-        
-        function endGame() {
-            // Определить сообщение по результату
-            let message = '';
-            if (score >= 8) {
-                message = 'Отлично! Вы настоящий эксперт по Seismic!';
-            } else if (score >= 5) {
-                message = 'Хороший результат! Вы разбираетесь в шифровании.';
-            } else {
-                message = 'Стоит еще почитать о типах данных Seismic.';
-            }
-            
-            finalScoreDisplay.textContent = score;
-            finalMessage.textContent = message;
-            endOverlay.style.display = 'flex';
-        }
-    }
-    
-    // Построй приватный контракт - игра
-    function initContractBuilder() {
-        const startBtn = document.getElementById('contract-builder-start-btn');
-        const restartBtn = document.getElementById('contract-builder-restart-btn');
-        const nextBtn = document.getElementById('contract-builder-next-btn');
-        const prevBtn = document.getElementById('contract-builder-prev-btn');
-        const startOverlay = document.getElementById('contract-builder-start');
-        const endOverlay = document.getElementById('contract-builder-end');
-        const progress = document.getElementById('contract-builder-progress');
-        const contractTypes = document.querySelectorAll('.contract-type');
-        const encryptionFields = document.querySelectorAll('.encryption-field');
-        const codePreview = document.querySelector('.code-preview');
-        
-        if (!startBtn) return; // Выход если элементы не найдены
-        
-        let currentStep = 1;
-        let selectedType = '';
-        let selectedFields = {
-            balance: true,
-            transfers: false,
-            votes: true,
-            voters: false,
-            bids: true,
-            bidders: false
-        };
-        
-        startBtn.addEventListener('click', startBuilder);
-        restartBtn.addEventListener('click', () => {
-            endOverlay.style.display = 'none';
-            startOverlay.style.display = 'flex';
-        });
-        
-        nextBtn.addEventListener('click', nextStep);
-        prevBtn.addEventListener('click', prevStep);
-        
-        // Слушатели для выбора типа контракта
-        contractTypes.forEach(type => {
-            type.addEventListener('change', () => {
-                selectedType = type.value;
-                nextBtn.disabled = false;
-                
-                // Скрыть все поля шифрования
-                document.getElementById('token-fields').style.display = 'none';
-                document.getElementById('voting-fields').style.display = 'none';
-                document.getElementById('auction-fields').style.display = 'none';
-                
-                // Показать нужные поля
-                switch(selectedType) {
-                    case 'token':
-                        document.getElementById('token-fields').style.display = 'block';
-                        break;
-                    case 'voting':
-                        document.getElementById('voting-fields').style.display = 'block';
-                        break;
-                    case 'auction':
-                        document.getElementById('auction-fields').style.display = 'block';
-                        break;
-                }
-            });
-        });
-        
-        // Слушатели для полей шифрования
-        encryptionFields.forEach(field => {
-            field.addEventListener('change', () => {
-                selectedFields[field.id.replace('encrypt-', '')] = field.checked;
-            });
-        });
-        
-        function startBuilder() {
-            // Сброс билдера
-            currentStep = 1;
-            selectedType = '';
-            progress.style.width = '0%';
-            progress.textContent = '0%';
-            
-            // Сбросить выбор
-            contractTypes.forEach(type => type.checked = false);
-            
-            // Установить видимость элементов
-            document.getElementById('step-1').style.display = 'block';
-            document.getElementById('step-2').style.display = 'none';
-            document.getElementById('step-3').style.display = 'none';
-            
-            // Активировать кнопки
-            nextBtn.disabled = true;
-            prevBtn.disabled = true;
-            
-            // Скрыть стартовый экран
-            startOverlay.style.display = 'none';
-        }
-        
-        function nextStep() {
-            if (currentStep < 3) {
-                // Скрыть текущий шаг
-                document.getElementById(`step-${currentStep}`).style.display = 'none';
-                
-                // Перейти к следующему шагу
-                currentStep++;
-                
-                // Показать новый шаг
-                document.getElementById(`step-${currentStep}`).style.display = 'block';
-                
-                // Обновить прогресс
-                const progressValue = ((currentStep - 1) / 2 * 100);
-                progress.style.width = `${progressValue}%`;
-                progress.textContent = `${progressValue}%`;
-                
-                // Активировать/деактивировать кнопки
-                prevBtn.disabled = false;
-                
-                if (currentStep === 3) {
-                    // Генерировать предпросмотр кода
-                    generateContractPreview();
-                }
-            }
-        }
-        
-        function prevStep() {
-            if (currentStep > 1) {
-                // Скрыть текущий шаг
-                document.getElementById(`step-${currentStep}`).style.display = 'none';
-                
-                // Перейти к предыдущему шагу
-                currentStep--;
-                
-                // Показать новый шаг
-                document.getElementById(`step-${currentStep}`).style.display = 'block';
-                
-                // Обновить прогресс
-                const progressValue = ((currentStep - 1) / 2 * 100);
-                progress.style.width = `${progressValue}%`;
-                progress.textContent = `${progressValue}%`;
-                
-                // Активировать/деактивировать кнопки
-                prevBtn.disabled = (currentStep === 1);
-                nextBtn.disabled = false;
-            }
-        }
-        
-        function generateContractPreview() {
-            let contractCode = '';
-            
-            switch(selectedType) {
-                case 'token':
-                    contractCode = generateTokenContract();
-                    break;
-                case 'voting':
-                    contractCode = generateVotingContract();
-                    break;
-                case 'auction':
-                    contractCode = generateAuctionContract();
-                    break;
-            }
-            
-            codePreview.innerHTML = contractCode;
-            
-            // Установить прогресс 100%
-            progress.style.width = '100%';
-            progress.textContent = '100%';
-            
-            // Изменить функцию кнопки "Далее"
-            nextBtn.textContent = 'Завершить';
-            nextBtn.removeEventListener('click', nextStep);
-            nextBtn.addEventListener('click', completeBuilder);
-        }
-        
-        function generateTokenContract() {
-            const useEncryptedBalances = selectedFields.balance;
-            const useEncryptedTransfers = selectedFields.transfers;
-            
-            return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-contract PrivateToken {
-    string public name = "SeismicToken";
-    string public symbol = "SSMC";
-    
-    // Маппинг балансов
-    mapping(address => ${useEncryptedBalances ? 'suint256' : 'uint256'}) private balances;
-    
-    // События
-    event Transfer(address indexed from, address indexed to);
-    
-    // Функция перевода токенов
-    function transfer(${useEncryptedTransfers ? 'saddress' : 'address'} to, ${useEncryptedBalances ? 'suint256' : 'uint256'} amount) external {
-        require(balances[msg.sender] >= amount, "Insufficient balance");
-        
-        balances[msg.sender] -= amount;
-        ${useEncryptedTransfers ? 
-            'address recipient = to; // неявное преобразование' : 
-            'address recipient = to;'}
-        balances[recipient] += amount;
-        
-        emit Transfer(msg.sender, recipient);
-    }
-}`;
-        }
-        
-        function generateVotingContract() {
-            const useEncryptedVotes = selectedFields.votes;
-            const useEncryptedVoters = selectedFields.voters;
-            
-            return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-contract PrivateVoting {
-    struct Proposal {
-        string description;
-        ${useEncryptedVotes ? 'suint256' : 'uint256'} yesVotes;
-        ${useEncryptedVotes ? 'suint256' : 'uint256'} noVotes;
-        uint256 endTime;
-    }
-    
-    // Маппинг предложений
-    mapping(uint256 => Proposal) public proposals;
-    
-    // Маппинг для отслеживания голосования
-    mapping(uint256 => mapping(address => bool)) private hasVoted;
-    
-    // События
-    event ProposalCreated(uint256 indexed proposalId, string description);
-    event Voted(uint256 indexed proposalId, address voter);
-    
-    // Функция голосования
-    function vote(uint256 proposalId, ${useEncryptedVotes ? 'sbool' : 'bool'} choice) external {
-        require(!hasVoted[proposalId][msg.sender], "Already voted");
-        
-        Proposal storage proposal = proposals[proposalId];
-        
-        if (choice) {
-            proposal.yesVotes += 1;
-        } else {
-            proposal.noVotes += 1;
-        }
-        
-        ${useEncryptedVoters ? 
-            '// Скрыть личность голосующего\n        bytes32 voterHash = keccak256(abi.encodePacked(msg.sender));\n        hasVoted[proposalId][msg.sender] = true;' : 
-            'hasVoted[proposalId][msg.sender] = true;'}
-        
-        emit Voted(proposalId, msg.sender);
-    }
-}`;
-        }
-        
-        function generateAuctionContract() {
-            const useEncryptedBids = selectedFields.bids;
-            const useEncryptedBidders = selectedFields.bidders;
-            
-            return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-contract PrivateAuction {
-    struct Auction {
-        address seller;
-        string itemDescription;
-        uint256 endTime;
-        bool finalized;
-        ${useEncryptedBidders ? 'saddress' : 'address'} highestBidder;
-        ${useEncryptedBids ? 'suint256' : 'uint256'} highestBid;
-    }
-    
-    // Маппинг аукционов
-    mapping(uint256 => Auction) public auctions;
-    
-    // Маппинг ставок
-    mapping(uint256 => mapping(address => ${useEncryptedBids ? 'suint256' : 'uint256'})) private bids;
-    
-    // События
-    event AuctionCreated(uint256 indexed auctionId, string itemDescription);
-    event BidPlaced(uint256 indexed auctionId, address bidder);
-    
-    // Функция размещения ставки
-    function placeBid(uint256 auctionId, ${useEncryptedBids ? 'suint256' : 'uint256'} bidAmount) external {
-        Auction storage auction = auctions[auctionId];
-        
-        require(bidAmount > auction.highestBid, "Bid too low");
-        
-        bids[auctionId][msg.sender] = bidAmount;
-        auction.highestBid = bidAmount;
-        ${useEncryptedBidders ? 
-            'saddress shieldedBidder = msg.sender; // Шифрование адреса\n        auction.highestBidder = shieldedBidder;' : 
-            'auction.highestBidder = msg.sender;'}
-        
-        emit BidPlaced(auctionId, msg.sender);
-    }
-}`;
-        }
-        
-        function completeBuilder() {
-            endOverlay.style.display = 'flex';
-        }
-    }
-    
-    // Квиз по Seismic - игра
-    function initQuizGame() {
-        const startBtn = document.getElementById('quiz-start-btn');
-        const restartBtn = document.getElementById('quiz-restart-btn');
-        const submitBtn = document.getElementById('quiz-submit-btn');
-        const startOverlay = document.getElementById('quiz-start');
-        const endOverlay = document.getElementById('quiz-end');
-        const scoreDisplay = document.getElementById('quiz-score');
-        const questionDisplay = document.getElementById('quiz-question');
-        const questionNumber = document.getElementById('quiz-question-number');
-        const finalScoreDisplay = document.getElementById('quiz-final-score');
-        const finalMessage = document.getElementById('quiz-final-message');
-        const feedbackAlert = document.getElementById('quiz-feedback');
-        const optionLabels = [
-            document.getElementById('quiz-option-0-label'),
-            document.getElementById('quiz-option-1-label'),
-            document.getElementById('quiz-option-2-label'),
-            document.getElementById('quiz-option-3-label')
-        ];
-        const options = document.querySelectorAll('.quiz-option');
-        
-        if (!startBtn) return; // Выход если элементы не найдены
-        
-        let score = 0;
-        let currentQuestion = 0;
-        let questions = [
-            {
-                question: "Что означает префикс 's' в типах данных Seismic?",
-                options: [
-                    "Статический тип (static)", 
-                    "Зашифрованный тип (shielded)", 
-                    "Безопасный тип (secure)", 
-                    "Подписанный тип (signed)"
-                ],
-                correct: 1
-            },
-            {
-                question: "Какой тип используется для зашифрованных адресов в Seismic?",
-                options: [
-                    "secureAddress", 
-                    "encryptedAddress", 
-                    "saddress", 
-                    "privateAddress"
-                ],
-                correct: 2
-            },
-            {
-                question: "Где выполняются зашифрованные смарт-контракты Seismic?",
-                options: [
-                    "В обычной EVM", 
-                    "В браузере пользователя", 
-                    "На серверах Seismic", 
-                    "В Trusted Execution Environment (TEE)"
-                ],
-                correct: 3
-            },
-            {
-                question: "Как проверяются зашифрованные транзакции в блокчейне Seismic?",
-                options: [
-                    "Они подтверждаются централизованным сервером", 
-                    "Они проверяются без раскрытия зашифрованных данных", 
-                    "Данные расшифровываются перед проверкой", 
-                    "Проверка невозможна из-за шифрования"
-                ],
-                correct: 1
-            },
-            {
-                question: "Какой из следующих типов данных НЕ является зашифрованным типом в Seismic?",
-                options: [
-                    "suint256", 
-                    "saddress", 
-                    "sbool", 
-                    "sbytes"
-                ],
-                correct: 3
-            }
-        ];
-        
-        startBtn.addEventListener('click', startQuiz);
-        restartBtn.addEventListener('click', () => {
-            endOverlay.style.display = 'none';
-            startOverlay.style.display = 'flex';
-        });
-        
-        // Подготовить слушателей для радио-кнопок
-        options.forEach(option => {
-            option.addEventListener('change', () => {
-                submitBtn.disabled = false;
-            });
-        });
-        
-        submitBtn.addEventListener('click', () => {
-            // Проверить выбранный ответ
-            const selectedOption = document.querySelector('input[name="quizOption"]:checked');
-            if (!selectedOption) return;
-            
-            const answer = parseInt(selectedOption.value);
-            const correct = questions[currentQuestion].correct;
-            
-            feedbackAlert.style.display = 'block';
-            
-            if (answer === correct) {
-                score++;
-                scoreDisplay.textContent = score;
-                feedbackAlert.className = 'alert alert-success mt-3';
-                feedbackAlert.textContent = 'Правильно!';
-            } else {
-                feedbackAlert.className = 'alert alert-danger mt-3';
-                feedbackAlert.textContent = 'Неверно. Правильный ответ: ' + questions[currentQuestion].options[correct];
-            }
-            
-            // Короткая пауза перед следующим вопросом
-            setTimeout(() => {
-                feedbackAlert.style.display = 'none';
-                
-                // Перейти к следующему вопросу
-                currentQuestion++;
-                if (currentQuestion >= questions.length) {
-                    endQuiz();
-                } else {
-                    questionNumber.textContent = currentQuestion + 1;
-                    loadQuestion(currentQuestion);
-                    
-                    // Сбросить выбор
-                    options.forEach(option => option.checked = false);
-                    submitBtn.disabled = true;
-                }
-            }, 1500);
-        });
-        
-        function startQuiz() {
-            // Сброс квиза
-            score = 0;
-            currentQuestion = 0;
-            scoreDisplay.textContent = '0';
-            questionNumber.textContent = '1';
-            
-            // Загрузить первый вопрос
-            loadQuestion(0);
-            
-            // Скрыть стартовый экран
-            startOverlay.style.display = 'none';
-            
-            // Сбросить выбор
-            options.forEach(option => option.checked = false);
-            submitBtn.disabled = true;
-        }
-        
-        function loadQuestion(index) {
-            const question = questions[index];
-            questionDisplay.textContent = question.question;
-            
-            // Загрузить варианты ответов
-            question.options.forEach((option, i) => {
-                optionLabels[i].textContent = option;
-            });
-        }
-        
-        function endQuiz() {
-            // Определить сообщение по результату
-            let message = '';
-            if (score === 5) {
-                message = 'Отлично! Вы настоящий эксперт по Seismic!';
-            } else if (score >= 3) {
-                message = 'Хороший результат! Вы разбираетесь в Seismic.';
-            } else {
-                message = 'Стоит еще почитать документацию Seismic.';
-            }
-            
-            finalScoreDisplay.textContent = score;
-            finalMessage.textContent = message;
-            endOverlay.style.display = 'flex';
-        }
-    }
-    
-    // Функция инициализации игры "Криптографический пазл"
-    function initCryptoPuzzleGame() {
-        const gameContainer = document.getElementById('crypto-puzzle-game');
-        const startOverlay = document.getElementById('crypto-puzzle-start');
-        const endOverlay = document.getElementById('crypto-puzzle-end');
-        const startBtn = document.getElementById('crypto-puzzle-start-btn');
-        const restartBtn = document.getElementById('crypto-puzzle-restart-btn');
-        const timerDisplay = document.getElementById('puzzle-timer');
-        const levelDisplay = document.getElementById('puzzle-level');
-        const finalLevelDisplay = document.getElementById('puzzle-final-level');
-        const finalMessageDisplay = document.getElementById('puzzle-final-message');
-        const dataContainer = document.getElementById('puzzle-data-container');
-        const solutionContainer = document.getElementById('puzzle-solution-container');
-        const submitBtn = document.getElementById('puzzle-submit-btn');
-        const feedbackDisplay = document.getElementById('puzzle-feedback');
-        const descriptionDisplay = document.getElementById('puzzle-description');
-
-        if (!startBtn) return; // Выход если элементы не найдены
-
-        let timer;
-        let timeLeft;
-        let currentLevel = 1;
-        let completedLevels = 0;
-        let puzzleItems = [];
-        let currentPuzzle = null;
-
-        // Определение уровней головоломки
-        const puzzleLevels = [
-            {
-                description: "Соберите шаги для создания базовой Seismic-транзакции в правильном порядке:",
-                items: [
-                    { id: 1, text: "1. Создание ключевой пары", order: 1 },
-                    { id: 2, text: "2. Шифрование данных", order: 2 },
-                    { id: 3, text: "3. Подписание транзакции", order: 3 },
-                    { id: 4, text: "4. Отправка в блокчейн", order: 4 }
-                ],
-                timeLimit: 60
-            },
-            {
-                description: "Соберите компоненты конфиденциальной транзакции Seismic:",
-                items: [
-                    { id: 1, text: "Приватный ключ отправителя", order: 1 },
-                    { id: 2, text: "Homomorphic Encryption", order: 2 },
-                    { id: 3, text: "Zero-Knowledge Proof", order: 3 },
-                    { id: 4, text: "Валидация без раскрытия данных", order: 4 },
-                    { id: 5, text: "Подтверждение в блокчейне", order: 5 }
-                ],
-                timeLimit: 90
-            },
-            {
-                description: "Соберите последовательность для защиты смарт-контракта с помощью Seismic:",
-                items: [
-                    { id: 1, text: "Определение приватных данных", order: 1 },
-                    { id: 2, text: "Применение FHE-шифрования", order: 2 },
-                    { id: 3, text: "Создание ZK-доказательств", order: 3 },
-                    { id: 4, text: "Интеграция с блокчейн-сетью", order: 4 },
-                    { id: 5, text: "Проверка целостности", order: 5 },
-                    { id: 6, text: "Выполнение контракта без доступа к открытым данным", order: 6 }
-                ],
-                timeLimit: 120
-            }
-        ];
-
-        // Функция инициализации уровня
-        function initLevel(level) {
-            currentPuzzle = puzzleLevels[level - 1];
-            timeLeft = currentPuzzle.timeLimit;
-            timerDisplay.textContent = timeLeft;
-            levelDisplay.textContent = level;
-            descriptionDisplay.textContent = currentPuzzle.description;
-            
-            // Очистка контейнеров
-            dataContainer.innerHTML = '';
-            solutionContainer.innerHTML = '<div class="text-center text-secondary">Перетащите блоки сюда</div>';
-            
-            // Создание перемешанных блоков данных
-            puzzleItems = [...currentPuzzle.items];
-            shuffleArray(puzzleItems);
-            
-            puzzleItems.forEach(item => {
-                const element = document.createElement('div');
-                element.className = 'puzzle-item bg-white border rounded p-2 m-1 draggable';
-                element.textContent = item.text;
-                element.dataset.id = item.id;
-                element.dataset.order = item.order;
-                element.draggable = true;
-                
-                // Добавление обработчиков перетаскивания
-                element.addEventListener('dragstart', handleDragStart);
-                dataContainer.appendChild(element);
-            });
-            
-            // Настройка области для перетаскивания
-            solutionContainer.addEventListener('dragover', handleDragOver);
-            solutionContainer.addEventListener('drop', handleDrop);
-            
-            // Запуск таймера
-            startTimer();
-        }
-        
-        // Обработчики событий перетаскивания
-        function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.id);
-            e.dataTransfer.effectAllowed = 'move';
-        }
-        
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-        
-        function handleDrop(e) {
-            e.preventDefault();
-            const itemId = e.dataTransfer.getData('text/plain');
-            const draggedItem = document.querySelector(`.draggable[data-id="${itemId}"]`);
-            
-            if (draggedItem) {
-                // Удаление подсказки при первом элементе
-                if (solutionContainer.querySelector('.text-secondary')) {
-                    solutionContainer.innerHTML = '';
-                }
-                
-                draggedItem.classList.add('in-solution');
-                solutionContainer.appendChild(draggedItem);
-            }
-        }
-        
-        // Функция проверки решения
-        function checkSolution() {
-            const solutionItems = Array.from(solutionContainer.querySelectorAll('.draggable'));
-            
-            // Проверяем, что все элементы перетащены
-            if (solutionItems.length !== currentPuzzle.items.length) {
-                showFeedback('Перетащите все блоки в область решения!', 'warning');
-                return;
-            }
-            
-            // Проверяем правильность порядка
-            let isCorrect = true;
-            for (let i = 0; i < solutionItems.length; i++) {
-                const expectedOrder = i + 1;
-                const actualOrder = parseInt(solutionItems[i].dataset.order);
-                
-                if (actualOrder !== expectedOrder) {
-                    isCorrect = false;
-                    break;
-                }
-            }
-            
-            if (isCorrect) {
-                clearInterval(timer);
-                completedLevels++;
-                
-                if (currentLevel < puzzleLevels.length) {
-                    showFeedback('Правильно! Переходим к следующему уровню.', 'success');
-                    setTimeout(() => {
-                        currentLevel++;
-                        initLevel(currentLevel);
-                    }, 1500);
-                } else {
-                    // Завершение игры
-                    endGame();
-                }
-            } else {
-                showFeedback('Порядок неверный. Попробуйте еще раз!', 'danger');
-            }
-        }
-        
-        // Показать сообщение обратной связи
-        function showFeedback(message, type) {
-            feedbackDisplay.className = `alert alert-${type} mt-3`;
-            feedbackDisplay.textContent = message;
-            feedbackDisplay.style.display = 'block';
-            
-            setTimeout(() => {
-                feedbackDisplay.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Запуск таймера
-        function startTimer() {
-            clearInterval(timer);
-            timer = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    showFeedback('Время вышло!', 'danger');
-                    setTimeout(() => {
-                        endGame();
-                    }, 1500);
-                }
-            }, 1000);
-        }
-        
-        // Завершение игры
-        function endGame() {
-            clearInterval(timer);
-            finalLevelDisplay.textContent = completedLevels;
-            
-            // Сообщение в зависимости от результата
-            if (completedLevels === puzzleLevels.length) {
-                finalMessageDisplay.textContent = 'Поздравляем! Вы прошли все уровни!';
-            } else {
-                finalMessageDisplay.textContent = `Вы прошли ${completedLevels} из ${puzzleLevels.length} уровней.`;
-            }
-            
-            endOverlay.style.display = 'flex';
-        }
-        
-        // Перемешивание массива
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-        
-        // Начало игры
-        function startGame() {
-            startOverlay.style.display = 'none';
-            endOverlay.style.display = 'none';
-            currentLevel = 1;
-            completedLevels = 0;
-            initLevel(currentLevel);
-        }
-        
-        // Обработчики событий кнопок
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
-        submitBtn.addEventListener('click', checkSolution);
-    }
-    
-    // Инициализация всех игр
-    function initGames() {
-        if (document.getElementById('data-protection-game')) {
-            initDataProtectionGame();
-        }
-        
-        if (document.getElementById('guess-tx-game')) {
-            initGuessTxGame();
-        }
-        
-        if (document.getElementById('contract-builder-game')) {
-            initContractBuilder();
-        }
-        
-        if (document.getElementById('quiz-game')) {
-            initQuizGame();
-        }
-        
-        if (document.getElementById('crypto-puzzle-game')) {
-            initCryptoPuzzleGame();
-        }
-        
-        if (document.getElementById('seismic-explorer-game')) {
-            initSeismicExplorer();
-        }
-    }
-    
     // Инициализация Seismic Explorer
     function initSeismicExplorer() {
         // DOM Элементы
@@ -1443,24 +115,142 @@ contract PrivateAuction {
             }
             
             // Добавляем обработчики событий
-            connectBtn.addEventListener('click', connectWallet);
+            connectBtn.addEventListener('click', showWalletOptions);
             encryptBtn.addEventListener('click', encryptData);
             sendTxBtn.addEventListener('click', sendTransaction);
             clearLogBtn.addEventListener('click', clearLog);
         }
         
+        // Функция для отображения модального окна выбора кошелька
+        function showWalletOptions() {
+            if (isConnected) {
+                addLogEntry('Система', 'Кошелек уже подключен');
+                return;
+            }
+
+            // Создаем модальное окно, если его еще нет
+            let walletModal = document.getElementById('wallet-connect-modal');
+            if (!walletModal) {
+                walletModal = document.createElement('div');
+                walletModal.id = 'wallet-connect-modal';
+                walletModal.className = 'modal fade';
+                walletModal.tabIndex = '-1';
+                walletModal.setAttribute('aria-labelledby', 'walletModalLabel');
+                walletModal.setAttribute('aria-hidden', 'true');
+                
+                walletModal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content bg-dark text-light">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="walletModalLabel">Выберите кошелек</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="d-grid gap-2">
+                                    <button id="connect-metamask" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3">
+                                        <span>MetaMask</span>
+                                        <i class="bi bi-currency-bitcoin fs-4"></i>
+                                    </button>
+                                    <button id="connect-walletconnect" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3">
+                                        <span>WalletConnect</span>
+                                        <i class="bi bi-phone fs-4"></i>
+                                    </button>
+                                    <button id="connect-coinbase" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3">
+                                        <span>Coinbase Wallet</span>
+                                        <i class="bi bi-wallet2 fs-4"></i>
+                                    </button>
+                                    <button id="connect-demo" class="btn btn-outline-info d-flex align-items-center justify-content-between p-3">
+                                        <span>Демо кошелек (без подключения)</span>
+                                        <i class="bi bi-bug fs-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <div class="small text-muted">
+                                    Используйте демо кошелек, если у вас нет расширения для криптокошелька в браузере
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(walletModal);
+                
+                // Добавляем обработчики событий для кнопок кошельков
+                document.getElementById('connect-metamask').addEventListener('click', () => {
+                    connectWallet('metamask');
+                    bootstrap.Modal.getInstance(walletModal).hide();
+                });
+                
+                document.getElementById('connect-walletconnect').addEventListener('click', () => {
+                    connectWallet('walletconnect');
+                    bootstrap.Modal.getInstance(walletModal).hide();
+                });
+                
+                document.getElementById('connect-coinbase').addEventListener('click', () => {
+                    connectWallet('coinbase');
+                    bootstrap.Modal.getInstance(walletModal).hide();
+                });
+                
+                document.getElementById('connect-demo').addEventListener('click', () => {
+                    connectWallet('demo');
+                    bootstrap.Modal.getInstance(walletModal).hide();
+                });
+            }
+            
+            // Показываем модальное окно
+            const modal = new bootstrap.Modal(walletModal);
+            modal.show();
+        }
+        
         // Подключение кошелька
-        function connectWallet() {
+        function connectWallet(walletType = 'metamask') {
             if (isConnected) {
                 addLogEntry('Система', 'Кошелек уже подключен');
                 return;
             }
             
-            addLogEntry('Система', 'Подключение кошелька...');
+            addLogEntry('Система', `Подключение кошелька ${walletType}...`);
+            
+            // Если выбран демо-режим, сразу переходим к имитации
+            if (walletType === 'demo') {
+                useDemoWallet();
+                return;
+            }
+            
+            // Проверка наличия провайдера для разных кошельков
+            let provider = null;
+            
+            switch (walletType) {
+                case 'metamask':
+                    provider = window.ethereum;
+                    break;
+                case 'walletconnect':
+                    // Здесь можно добавить код для WalletConnect
+                    // Для полной реализации нужно подключить библиотеку WalletConnect
+                    addLogEntry('Система', 'WalletConnect в данный момент недоступен, используется демо-режим');
+                    useDemoWallet();
+                    return;
+                case 'coinbase':
+                    // Здесь можно добавить код для Coinbase Wallet
+                    // Для полной реализации нужно подключить библиотеку Coinbase Wallet SDK
+                    addLogEntry('Система', 'Coinbase Wallet в данный момент недоступен, используется демо-режим');
+                    useDemoWallet();
+                    return;
+            }
+            
+            // Проверяем наличие провайдера
+            if (!provider) {
+                const walletName = walletType.charAt(0).toUpperCase() + walletType.slice(1);
+                addLogEntry('Ошибка', `${walletName} не обнаружен. Убедитесь, что расширение установлено и активно`);
+                addLogEntry('Система', 'Переключение в демо-режим...');
+                useDemoWallet();
+                return;
+            }
             
             // Используем SDK для подключения кошелька
             if (window.seismicSDK) {
-                seismicSDK.connect()
+                seismicSDK.connect(walletType)
                     .then(connectedWallet => {
                         wallet = connectedWallet;
                         isConnected = true;
@@ -1493,31 +283,39 @@ contract PrivateAuction {
                             });
                     })
                     .catch(error => {
-                        addLogEntry('Ошибка', 'Ошибка подключения кошелька: ' + error.message);
+                        addLogEntry('Ошибка', `Ошибка подключения кошелька: ${error.message}`);
+                        addLogEntry('Система', 'Если у вас нет расширения кошелька, используйте опцию "Демо кошелек" при подключении');
                     });
             } else {
-                // Если SDK не доступен, используем имитацию (существующий код)
-                setTimeout(() => {
-                    wallet = {
-                        address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-                        publicKey: '0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e'
-                    };
-                    
-                    isConnected = true;
-                    connectBtn.textContent = 'Кошелек подключен';
-                    connectBtn.classList.remove('btn-outline-light');
-                    connectBtn.classList.add('btn-success');
-                    
-                    // Показываем кнопку фаусета даже в режиме имитации
-                    const faucetBtn = document.getElementById('seismic-faucet-btn');
-                    if (faucetBtn) {
-                        faucetBtn.style.display = 'inline-block';
-                        faucetBtn.href = `${seismicConfig.network.faucet}?address=${wallet.address}`;
-                    }
-                    
-                    addLogEntry('Система', `Кошелек подключен: ${wallet.address.substring(0, 8)}...`);
-                }, 1000);
+                // Если SDK не доступен, используем имитацию
+                useDemoWallet();
             }
+        }
+
+        // Функция для использования демо-кошелька
+        function useDemoWallet() {
+            setTimeout(() => {
+                wallet = {
+                    address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+                    publicKey: '0x04f3d2b5ce7e65a9d63864be195738b5f76b6ebad2ce93805eda88513bc8a27a74a1e9d17c27e9f9b2c0cc13ad8c7a04f83a3aa4b64a5950c15c1845b51c0be17e',
+                    type: 'demo'
+                };
+                
+                isConnected = true;
+                connectBtn.textContent = 'Демо кошелек подключен';
+                connectBtn.classList.remove('btn-outline-light');
+                connectBtn.classList.add('btn-info');
+                
+                // Показываем кнопку фаусета даже в режиме имитации
+                const faucetBtn = document.getElementById('seismic-faucet-btn');
+                if (faucetBtn) {
+                    faucetBtn.style.display = 'inline-block';
+                    faucetBtn.href = `${seismicConfig.network.faucet}?address=${wallet.address}`;
+                }
+                
+                addLogEntry('Система', `Демо кошелек подключен: ${wallet.address.substring(0, 8)}...`);
+                addLogEntry('Система', 'Используется демонстрационный режим без настоящего подключения к блокчейну');
+            }, 1000);
         }
         
         // Функция шифрования данных
@@ -1594,149 +392,124 @@ contract PrivateAuction {
                                 encryptedString = JSON.stringify(encryptedData.encryptedValue).substring(0, 10) + '...';
                             }
                         } catch (e) {
-                            encryptedString = '[зашифрованные данные]';
+                            encryptedString = '[encrypted]';
                             console.error('Ошибка форматирования зашифрованных данных:', e);
                         }
-                            
+                        
                         addLogEntry('Шифрование', 
-                            `Данные зашифрованы успешно: ${encryptedString}`, 
-                            null, 
-                            encryptedData);
-                            
-                        // Добавляем визуальное представление
-                        const logEntry = txLog.lastElementChild;
-                        if (logEntry) {
-                            const encryptedSpan = document.createElement('div');
-                            encryptedSpan.className = 'mt-1 text-info';
-                            encryptedSpan.innerHTML = `Зашифровано: ${dataType} (${encryptedString})`;
-                            logEntry.appendChild(encryptedSpan);
-                        }
+                            `Данные зашифрованы успешно`,
+                            null,
+                            {
+                                type: dataType,
+                                encryptedValue: encryptedString
+                            });
                     })
                     .catch(error => {
                         addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
                     });
             } else {
-                // Существующий код имитации
-                // Анимация шифрования
-                animateEncryption(dataType, dataValue);
+                // Имитация шифрования для демонстрации
+                setTimeout(() => {
+                    // Создаем имитацию зашифрованных данных
+                    const encryptedValue = generateEncryptedValue(dataType, dataValue);
+                    currentEncryption = {
+                        type: dataType,
+                        originalValue: dataValue,
+                        encryptedValue: encryptedValue
+                    };
+                    
+                    // Активируем кнопку отправки транзакции
+                    sendTxBtn.disabled = false;
+                    
+                    // Запускаем анимацию шифрования
+                    animateEncryption(dataType, dataValue);
+                    
+                    // Логируем результат
+                    addLogEntry('Шифрование', 
+                        `Данные зашифрованы успешно`,
+                        null,
+                        {
+                            type: dataType,
+                            encryptedValue: encryptedValue.substring(0, 10) + '...'
+                        });
+                }, 1500);
             }
         }
         
         // Анимация процесса шифрования
         function animateEncryption(dataType, dataValue) {
-            // Получение элементов анимации
-            const teeProcessor = encryptionAnimation.querySelector('.tee-processor');
-            const originalData = encryptionAnimation.querySelector('.original-data');
-            const encryptedData = encryptionAnimation.querySelector('.encrypted-data');
-            const zkProof = encryptionAnimation.querySelector('.zk-proof');
-            const networkActivity = encryptionAnimation.querySelector('.network-activity');
-            
-            // Отображение исходных данных
-            originalData.textContent = `${dataType}: ${dataValue}`;
-            originalData.style.opacity = '1';
-            
-            // Добавляем логи до шифрования
-            addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
-
-            // Используем try-catch для защиты от ошибок
             try {
-                // Создание частиц данных для анимации
-                for (let i = 0; i < 10; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'data-particle';
-                    
-                    // Размещение частицы в случайном месте слева
-                    const randomTop = 20 + Math.random() * 160;
-                    particle.style.left = '30px';
-                    particle.style.top = `${randomTop}px`;
-                    
-                    encryptionAnimation.querySelector('.position-relative').appendChild(particle);
-                    
-                    // Анимация движения частицы в центр (к TEE)
-                    setTimeout(() => {
-                        particle.style.transform = 'translate(100px, -10px)';
-                    }, 100 + i * 50);
-                    
-                    // Удаление частицы после завершения анимации
-                    setTimeout(() => {
-                        particle.remove();
-                    }, 2000);
+                // Получаем элементы для анимации
+                const originalData = encryptionAnimation.querySelector('.original-data');
+                const encryptedData = encryptionAnimation.querySelector('.encrypted-data');
+                const teeProcessor = encryptionAnimation.querySelector('.tee-processor');
+                
+                // Создаем представление исходных данных
+                let dataDisplay;
+                switch (dataType) {
+                    case 'suint':
+                        dataDisplay = `<span class="data-number">${dataValue}</span>`;
+                        break;
+                    case 'saddress':
+                        dataDisplay = `<span class="data-address">${dataValue.substring(0, 8)}...${dataValue.substring(38)}</span>`;
+                        break;
+                    case 'sbool':
+                        dataDisplay = `<span class="data-bool">${dataValue}</span>`;
+                        break;
+                    default:
+                        dataDisplay = `<span class="data-text">${dataValue}</span>`;
                 }
                 
-                // Активация TEE-процессора
-                setTimeout(() => {
+                // Устанавливаем исходные данные
+                if (originalData) {
+                    originalData.innerHTML = `
+                        <div class="p-2 rounded bg-light">
+                            <div class="data-label">Исходные данные (${dataType}):</div>
+                            <div class="data-value">${dataDisplay}</div>
+                        </div>
+                    `;
+                    originalData.style.opacity = '1';
+                }
+                
+                // Анимация процессора TEE
+                if (teeProcessor) {
                     teeProcessor.classList.add('active');
+                    setTimeout(() => teeProcessor.classList.remove('active'), 2000);
+                }
+                
+                // Создаем представление зашифрованных данных
+                const encryptedValue = currentEncryption.encryptedValue;
+                let encryptedDisplay;
+                
+                try {
+                    // Форматируем зашифрованное значение для отображения
+                    const formattedEncryption = typeof encryptedValue === 'string' 
+                        ? encryptedValue.substring(0, 12) + '...' 
+                        : JSON.stringify(encryptedValue).substring(0, 12) + '...';
                     
-                    addLogEntry('Шифрование', `Обработка ${dataType} в Trusted Execution Environment`);
-                    
-                    // Шифрование данных с использованием SDK
-                    if (window.seismicSDK) {
-                        seismicSDK.encrypt(dataType, dataValue)
-                            .then(encryptedValue => {
-                                // Сохранение результата шифрования
-                                currentEncryption = {
-                                    type: dataType,
-                                    originalValue: dataValue,
-                                    encryptedValue: encryptedValue
-                                };
-                                
-                                // Отображение зашифрованных данных
-                                encryptedData.textContent = `${dataType}: ${currentEncryption.encryptedValue.substring(0, 20)}...`;
-                                encryptedData.style.opacity = '1';
-                                
-                                // Активация ZK-доказательства
-                                zkProof.classList.add('active');
-                                
-                                // Деактивация TEE через полсекунды
-                                setTimeout(() => {
-                                    teeProcessor.classList.remove('active');
-                                    
-                                    // Активация кнопки отправки транзакции
-                                    sendTxBtn.disabled = false;
-                                    
-                                    addLogEntry('Шифрование', 'Данные успешно зашифрованы с ZK-доказательством');
-                                }, 500);
-                            })
-                            .catch(error => {
-                                addLogEntry('Ошибка', 'Ошибка шифрования: ' + error.message);
-                                teeProcessor.classList.remove('active');
-                            });
-                    } else {
-                        // Если SDK не доступен, имитируем шифрование
-                        setTimeout(() => {
-                            // Генерация зашифрованного значения
-                            currentEncryption = {
-                                type: dataType,
-                                originalValue: dataValue,
-                                encryptedValue: generateEncryptedValue(dataType, dataValue)
-                            };
-                            
-                            // Отображение зашифрованных данных
-                            encryptedData.textContent = `${dataType}: ${currentEncryption.encryptedValue.substring(0, 20)}...`;
-                            encryptedData.style.opacity = '1';
-                            
-                            // Активация ZK-доказательства
-                            zkProof.classList.add('active');
-                            
-                            // Деактивация TEE
-                            setTimeout(() => {
-                                teeProcessor.classList.remove('active');
-                                
-                                // Активация кнопки отправки транзакции
-                                sendTxBtn.disabled = false;
-                                
-                                addLogEntry('Шифрование', 'Данные успешно зашифрованы с ZK-доказательством');
-                            }, 500);
-                        }, 2000);
+                    encryptedDisplay = `<span class="data-encrypted">${formattedEncryption}</span>`;
+                } catch (e) {
+                    encryptedDisplay = `<span class="data-encrypted">[encrypted]</span>`;
+                }
+                
+                // С задержкой показываем зашифрованные данные
+                setTimeout(() => {
+                    if (encryptedData) {
+                        encryptedData.innerHTML = `
+                            <div class="p-2 rounded bg-primary text-light">
+                                <div class="data-label">Зашифрованные данные:</div>
+                                <div class="data-value">${encryptedDisplay}</div>
+                            </div>
+                        `;
+                        encryptedData.style.opacity = '1';
                     }
                 }, 1000);
                 
-                // Дополнительные проверки и логирование для отладки
-                console.log("Состояние после шифрования:", currentEncryption);
-                
-                // Проверяем, что переменная существует
-                if(!currentEncryption) {
-                    console.warn("currentEncryption не определен");
+                // Добавляем анимацию частиц для визуального эффекта
+                if (typeof window.createEncryptionParticles === 'function') {
+                    setTimeout(() => {
+                        window.createEncryptionParticles(encryptionAnimation);
+                    }, 500);
                 }
             } catch (error) {
                 console.error("Ошибка в анимации шифрования:", error);
@@ -1936,6 +709,8 @@ contract PrivateAuction {
         }
     }
     
-    // Вызвать инициализацию игр при загрузке страницы
-    initGames();
+    // Вызвать инициализацию Seismic Explorer при загрузке страницы
+    if (document.getElementById('seismic-explorer-game')) {
+        initSeismicExplorer();
+    }
 }); 
